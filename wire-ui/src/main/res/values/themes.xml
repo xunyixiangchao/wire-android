@@ -117,6 +117,7 @@
         <item name="startUiHeaderRowLabel">@style/start_ui__header_row__label__dark</item>
 
         <item name="wireDivider">@style/common__divider__dark</item>
+        <item name="wireDividerColor">@color/separator_dark</item>
         <item name="tabIndicatorLabel">@style/common__tab_indicator_label__dark</item>
 
         <!-- Media Player -->
@@ -254,6 +255,7 @@
         <item name="startUiHeaderRowLabel">@style/start_ui__header_row__label__light</item>
 
         <item name="wireDivider">@style/common__divider__light</item>
+        <item name="wireDividerColor">@color/separator_light</item>
         <item name="tabIndicatorLabel">@style/common__tab_indicator_label__light</item>
 
         <!-- Media Player -->
