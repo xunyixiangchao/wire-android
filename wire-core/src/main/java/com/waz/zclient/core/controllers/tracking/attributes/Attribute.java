@@ -60,6 +60,8 @@ public enum Attribute {
     WITH_OTTO("with_otto"),
     WITH_BOT("with_bot"),
     IS_LAST_MESSAGE("is_last_message"),
+    IS_EPHEMERAL("is_ephemeral"),
+    EPHEMERAL_EXPIRATION("ephemeral_expiration"),
 
     FILE_SIZE_BYTES("file_size_bytes"),
 

@@ -52,6 +52,8 @@ public class SentAudioMessageEvent extends Event {
         if (conversation != null) {
             attributes.put(Attribute.WITH_BOT, String.valueOf(conversation.isOtto()));
             attributes.put(Attribute.CONVERSATION_TYPE, conversation.getName());
+            attributes.put(Attribute.IS_EPHEMERAL, String.valueOf(conversation.isEphemeral()));
+            attributes.put(Attribute.EPHEMERAL_EXPIRATION, String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds()));
         }
     }
 

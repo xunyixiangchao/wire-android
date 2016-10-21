@@ -64,7 +64,7 @@ public class SentPictureEvent extends Event {
         }
     }
 
-    public SentPictureEvent(Source source, String conversationType, Method method, SketchSource sketchSource, boolean withBot) {
+    public SentPictureEvent(Source source, String conversationType, Method method, SketchSource sketchSource, boolean withBot, boolean isEphemeral, String ephemeralExpiration) {
         attributes.put(Attribute.SOURCE, source.nameString);
         attributes.put(Attribute.CONVERSATION_TYPE, conversationType);
         attributes.put(Attribute.WITH_BOT, String.valueOf(withBot));
@@ -74,6 +74,8 @@ public class SentPictureEvent extends Event {
         if (sketchSource != SketchSource.NONE) {
             attributes.put(Attribute.SKETCH_SOURCE, sketchSource.nameString);
         }
+        attributes.put(Attribute.IS_EPHEMERAL, String.valueOf(isEphemeral));
+        attributes.put(Attribute.EPHEMERAL_EXPIRATION, ephemeralExpiration);
     }
 
     @NonNull

@@ -138,14 +138,20 @@ public class CallingTrackingEventsHandler implements CallingEventsHandler {
         logToAvs("onOutgoingRingingStarted");
         if (callingEvent.isVideoCall()) {
             trackingController.tagEvent(new StartedVideoCallEvent(callingEvent));
+            // TODO: CM-1105 Set ephemeral flag with real value
             trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.VIDEO_CALL,
                                                                       callingEvent.kindOfCall().name(),
-                                                                      callingEvent.isOtto()));
+                                                                      callingEvent.isOtto(),
+                                                                      false,
+                                                                      ""));
         } else {
             trackingController.tagEvent(new StartedCallEvent(callingEvent));
+            // TODO: CM-1105 Set ephemeral flag with real value
             trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.AUDIO_CALL,
                                                                       callingEvent.kindOfCall().name(),
-                                                                      callingEvent.isOtto()));
+                                                                      callingEvent.isOtto(),
+                                                                      false,
+                                                                      ""));
         }
     }
 

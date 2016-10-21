@@ -250,23 +250,31 @@ public class TrackingUtils {
         trackingController.tagEvent(new SentTextMessageEvent(conversation));
         trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.TEXT,
                                                                   conversation.getType().name(),
-                                                                  conversation.isOtto()));
+                                                                  conversation.isOtto(),
+                                                                  conversation.isEphemeral(),
+                                                                  String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
     }
 
     public static void onSentGifMessage(ITrackingController trackingController, IConversation conversation) {
         trackingController.tagEvent(new SentTextMessageEvent(conversation));
         trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.TEXT,
                                                                   conversation.getType().name(),
-                                                                  conversation.isOtto()));
+                                                                  conversation.isOtto(),
+                                                                  conversation.isEphemeral(),
+                                                                  String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
 
         trackingController.tagEvent(new SentPictureEvent(SentPictureEvent.Source.GIPHY,
                                                          conversation.getType().name(),
                                                          SentPictureEvent.Method.DEFAULT,
                                                          SentPictureEvent.SketchSource.NONE,
-                                                         conversation.isOtto()));
+                                                         conversation.isOtto(),
+                                                         conversation.isEphemeral(),
+                                                         String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
         trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.PHOTO,
                                                                   conversation.getType().name(),
-                                                                  conversation.isOtto()));
+                                                                  conversation.isOtto(),
+                                                                  conversation.isEphemeral(),
+                                                                  String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
     }
 
     public static void onSentSketchMessage(ITrackingController trackingController,
@@ -290,10 +298,14 @@ public class TrackingUtils {
                                                          conversation.getType().name(),
                                                          SentPictureEvent.Method.DEFAULT,
                                                          sketchSource,
-                                                         conversation.isOtto()));
+                                                         conversation.isOtto(),
+                                                         conversation.isEphemeral(),
+                                                         String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
         trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.PHOTO,
                                                                   conversation.getType().name(),
-                                                                  conversation.isOtto()));
+                                                                  conversation.isOtto(),
+                                                                  conversation.isEphemeral(),
+                                                                  String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
         trackingController.updateSessionAggregates(RangedAttribute.IMAGES_SENT);
     }
 
@@ -301,7 +313,9 @@ public class TrackingUtils {
         trackingController.tagEvent(new SentLocationEvent(conversation));
         trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.LOCATION,
                                                                   conversation.getType().name(),
-                                                                  conversation.isOtto()));
+                                                                  conversation.isOtto(),
+                                                                  conversation.isEphemeral(),
+                                                                  String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
     }
 
     public static void onSentPhotoMessageFromSharing(ITrackingController trackingController,
@@ -311,10 +325,14 @@ public class TrackingUtils {
                                                          conversation.getType().name(),
                                                          SentPictureEvent.Method.DEFAULT,
                                                          SentPictureEvent.SketchSource.NONE,
-                                                         conversation.isOtto()));
+                                                         conversation.isOtto(),
+                                                         conversation.isEphemeral(),
+                                                         String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
         trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.PHOTO,
                                                                   conversation.getType().name(),
-                                                                  conversation.isOtto()));
+                                                                  conversation.isOtto(),
+                                                                  conversation.isEphemeral(),
+                                                                  String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
         trackingController.updateSessionAggregates(RangedAttribute.IMAGES_SENT);
     }
 
@@ -326,10 +344,14 @@ public class TrackingUtils {
                                                          conversation.getType().name(),
                                                          method,
                                                          SentPictureEvent.SketchSource.NONE,
-                                                         conversation.isOtto()));
+                                                         conversation.isOtto(),
+                                                         conversation.isEphemeral(),
+                                                         String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
         trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.PHOTO,
                                                                   conversation.getType().name(),
-                                                                  conversation.isOtto()));
+                                                                  conversation.isOtto(),
+                                                                  conversation.isEphemeral(),
+                                                                  String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
         trackingController.updateSessionAggregates(RangedAttribute.IMAGES_SENT);
     }
 
@@ -362,6 +384,8 @@ public class TrackingUtils {
         trackingController.tagEvent(OpenedMediaActionEvent.ping(isGroupConversation));
         trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.PING,
                                                                   isGroupConversation ? "GROUP" : "ONE_TO_ONE",
-                                                                  conversation.isOtto()));
+                                                                  conversation.isOtto(),
+                                                                  conversation.isEphemeral(),
+                                                                  String.valueOf(conversation.getEphemeralExpiration().duration().toSeconds())));
     }
 }

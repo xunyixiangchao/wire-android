@@ -26,14 +26,14 @@ import com.waz.service.call.AvsMetrics;
 import com.waz.zclient.controllers.tracking.ITrackingController;
 import com.waz.zclient.controllers.tracking.events.calling.EndedCallAVSMetricsEvent;
 import com.waz.zclient.core.controllers.tracking.attributes.CompletedMediaType;
-import com.waz.zclient.core.controllers.tracking.events.media.CompletedMediaActionEvent;
 import com.waz.zclient.core.controllers.tracking.events.filetransfer.CancelledFileUploadEvent;
 import com.waz.zclient.core.controllers.tracking.events.filetransfer.FailedFileDownloadEvent;
 import com.waz.zclient.core.controllers.tracking.events.filetransfer.FailedFileUploadEvent;
 import com.waz.zclient.core.controllers.tracking.events.filetransfer.InitiatedFileDownloadEvent;
 import com.waz.zclient.core.controllers.tracking.events.filetransfer.InitiatedFileUploadEvent;
-import com.waz.zclient.core.controllers.tracking.events.filetransfer.SuccessfullyUploadedFileEvent;
 import com.waz.zclient.core.controllers.tracking.events.filetransfer.SuccessfullyDownloadedFileEvent;
+import com.waz.zclient.core.controllers.tracking.events.filetransfer.SuccessfullyUploadedFileEvent;
+import com.waz.zclient.core.controllers.tracking.events.media.CompletedMediaActionEvent;
 import com.waz.zclient.core.controllers.tracking.events.media.SentPictureEvent;
 import org.threeten.bp.Duration;
 import timber.log.Timber;
@@ -68,9 +68,12 @@ public class AppTrackingEventsHandler implements TrackingEventsHandler {
                 } else if (assetMimeType.contains(ASSET_MIME_TYPE_VIDEO)) {
                     mediaType = CompletedMediaType.VIDEO;
                 }
+                // TODO: CM-1105 Set ephemeral flag with real value
                 trackingController.tagEvent(new CompletedMediaActionEvent(mediaType,
                                                                           conversationType,
-                                                                          withOtto));
+                                                                          withOtto,
+                                                                          false,
+                                                                          ""));
                 break;
             case IMAGE_UPLOAD_AS_ASSET:
                 String type = trackingEvent.getConversationType().getOrElse(IConversation.Type.UNKNOWN).toString();
@@ -79,10 +82,15 @@ public class AppTrackingEventsHandler implements TrackingEventsHandler {
                 trackingController.tagEvent(new SentPictureEvent(SentPictureEvent.Source.CLIP, type,
                                                                  SentPictureEvent.Method.DEFAULT,
                                                                  SentPictureEvent.SketchSource.NONE,
-                                                                 withBot));
+                                                                 withBot,
+                                                                 false,
+                                                                 ""));
+                // TODO: CM-1105 Set ephemeral flag with real value
                 trackingController.tagEvent(new CompletedMediaActionEvent(CompletedMediaType.PHOTO,
                                                                           type,
-                                                                          withBot));
+                                                                          withBot,
+                                                                          false,
+                                                                          ""));
                 break;
             case ASSET_UPLOAD_SUCCESSFUL:
                 int durationInSeconds = (int) (trackingEvent.getDuration().getOrElse(Duration.ofSeconds(-1)).toMillis() / 1000);

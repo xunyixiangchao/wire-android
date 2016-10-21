@@ -173,6 +173,7 @@ import com.waz.zclient.utils.OtrDestination;
 import com.waz.zclient.utils.PermissionUtils;
 import com.waz.zclient.utils.TrackingUtils;
 import com.waz.zclient.utils.ViewUtils;
+import com.waz.zclient.utils.ZTimeFormatter;
 import com.waz.zclient.views.LoadingIndicatorView;
 import com.waz.zclient.views.MentioningFragment;
 import net.hockeyapp.android.ExceptionHandler;
