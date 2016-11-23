@@ -112,7 +112,6 @@ import com.waz.zclient.controllers.tracking.events.conversation.OpenedMessageAct
 import com.waz.zclient.controllers.tracking.events.conversation.ReactedToMessageEvent;
 import com.waz.zclient.controllers.tracking.events.navigation.OpenedMoreActionsEvent;
 import com.waz.zclient.controllers.userpreferences.IUserPreferencesController;
-import com.waz.zclient.core.api.scala.ModelObserver;
 import com.waz.zclient.core.controllers.tracking.attributes.OpenedMediaAction;
 import com.waz.zclient.core.controllers.tracking.attributes.RangedAttribute;
 import com.waz.zclient.core.controllers.tracking.events.filetransfer.SavedFileEvent;
@@ -132,7 +131,6 @@ import com.waz.zclient.core.stores.inappnotification.InAppNotificationStoreObser
 import com.waz.zclient.core.stores.inappnotification.KnockingEvent;
 import com.waz.zclient.core.stores.network.DefaultNetworkAction;
 import com.waz.zclient.core.stores.participants.ParticipantsStoreObserver;
-import com.waz.zclient.messages.MessagesListView;
 import com.waz.zclient.notifications.controllers.ImageNotificationsController;
 import com.waz.zclient.pages.BaseFragment;
 import com.waz.zclient.pages.extendedcursor.ExtendedCursorContainer;
@@ -148,12 +146,7 @@ import com.waz.zclient.pages.main.conversation.views.MessageViewsContainer;
 import com.waz.zclient.pages.main.conversation.views.TypingIndicatorView;
 import com.waz.zclient.pages.main.conversation.views.header.StreamMediaPlayerBarFragment;
 import com.waz.zclient.pages.main.conversation.views.listview.ConversationScrollListener;
-import com.waz.zclient.pages.main.conversation.views.row.message.MessageAndSeparatorViewController;
 import com.waz.zclient.pages.main.conversation.views.row.message.MessageViewController;
-import com.waz.zclient.pages.main.conversation.views.row.message.views.FileMessageViewController;
-import com.waz.zclient.pages.main.conversation.views.row.message.views.ImageMessageViewController;
-import com.waz.zclient.pages.main.conversation.views.row.message.views.MediaPlayerViewController;
-import com.waz.zclient.pages.main.conversation.views.row.message.views.YouTubeMessageViewController;
 import com.waz.zclient.pages.main.conversationlist.ConversationListAnimation;
 import com.waz.zclient.pages.main.conversationpager.controller.SlidingPaneObserver;
 import com.waz.zclient.pages.main.onboarding.OnBoardingHintFragment;
@@ -184,7 +177,6 @@ import timber.log.Timber;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ConversationFragment extends BaseFragment<ConversationFragment.Container> implements ConversationStoreObserver,
                                                                                                   CallingObserver,
@@ -435,12 +427,12 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
                     break;
                 case SAVE:
                     saveMessage(message);
-                    break;
-                case OPEN_FILE:
-                    if (message.getMessageType() == Message.Type.ANY_ASSET &&
-                        messageViewController instanceof FileMessageViewController) {
-                        ((FileMessageViewController) messageViewController).startAssetDownLoad();
-                    }
+//                    break;
+//                case OPEN_FILE:
+//                    if (message.getMessageType() == Message.Type.ANY_ASSET &&
+//                        messageViewController instanceof FileMessageViewController) {
+//                        ((FileMessageViewController) messageViewController).startAssetDownLoad();
+//                    }
                     break;
                 default:
                     ExceptionHandler.saveException(new RuntimeException("Unhandled action"), null, null);
@@ -649,9 +641,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
         getControllerFactory().getStreamMediaPlayerController().addStreamMediaBarObserver(this);
         getControllerFactory().getAccentColorController().addAccentColorObserver(this);
         getStoreFactory().getParticipantsStore().addParticipantsStoreObserver(this);
-        listView.registerScrolledToBottomListener(this);
-        listView.registerVisibleMessagesChangedListener(this);
-        listView.registerScrollStateChangeListener(this);
         getControllerFactory().getGlobalLayoutController().addKeyboardVisibilityObserver(this);
         getStoreFactory().getInAppNotificationStore().addInAppNotificationObserver(this);
 
@@ -717,9 +706,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
         getStoreFactory().getConversationStore().removeConversationStoreObserver(this);
         getControllerFactory().getAccentColorController().removeAccentColorObserver(this);
         getControllerFactory().getNavigationController().removeNavigationControllerObserver(this);
-        listView.unregisterVisibleMessagesChangedListener(this);
-        listView.unregisterScrolledToBottomListener(this);
-        listView.unregisterScrollStateChangeListener(this);
         getControllerFactory().getSlidingPaneController().removeObserver(this);
         getControllerFactory().getConversationScreenController().setConversationStreamUiReady(false);
         getControllerFactory().getRequestPermissionsController().removeObserver(this);
@@ -779,18 +765,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
         getControllerFactory().getNavigationController().setRightPage(Page.MESSAGE_STREAM, TAG);
     }
 
-    private View getViewByPosition(int pos, ListView listView) {
-        final int firstListItemPosition = listView.getFirstVisiblePosition();
-        final int lastListItemPosition = firstListItemPosition + listView.getChildCount() - 1;
-
-        if (pos < firstListItemPosition || pos > lastListItemPosition) {
-            return listView.getAdapter().getView(pos, null, listView);
-        } else {
-            final int childIndex = pos - firstListItemPosition;
-            return listView.getChildAt(childIndex);
-        }
-    }
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     //  Notifications
@@ -826,14 +800,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
 
         extendedCursorContainer.close(true);
 
-        final boolean changeToDifferentConversation = fromConversation == null ||
-                                                      !fromConversation.getId().equals(toConversation.getId());
-        if (changeToDifferentConversation) {
-            messageStreamManager.resetMessages();
-        }
-        messageStreamManager.setConversation(toConversation,
-                                             getControllerFactory().getNavigationController().getCurrentPage() != Page.MESSAGE_STREAM);
-
         getControllerFactory().getConversationScreenController().setSingleConversation(toConversation.getType() == IConversation.Type.ONE_TO_ONE);
 
 
@@ -849,6 +815,10 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
                 if (cursorLayout == null) {
                     return;
                 }
+
+                final boolean changeToDifferentConversation = fromConversation == null ||
+                                                              !fromConversation.getId().equals(toConversation.getId());
+
 
                 // handle draft
                 if (fromConversation != null && changeToDifferentConversation &&
@@ -1278,19 +1248,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
     }
 
     @Override
-    public void closeMessageViewsExtras() {
-        if (messageAdapter == null) {
-            return;
-        }
-        for (View v : messageAdapter.getActiveViews()) {
-            MessageAndSeparatorViewController messageVC = (MessageAndSeparatorViewController) v.getTag();
-            if (messageVC != null) {
-                messageVC.closeMessageViewControllerExtras();
-            }
-        }
-    }
-
-    @Override
     public boolean ping(boolean hotKnock, String id, String message, int color) {
         if (hotKnock) {
             if (lastHotPingMessageId != null && lastHotPingMessageId.equals(id)) {
@@ -1332,6 +1289,11 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
                 getControllerFactory().getConversationScreenController().showParticipants(anchorView, true);
                 break;
         }
+    }
+
+    @Override
+    public void closeMessageViewsExtras() {
+
     }
 
     @Override
@@ -2460,13 +2422,13 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
         }
         try {
             boolean ephemeral = false;
-            for (int i = listView.getFirstVisiblePosition(); i <= listView.getLastVisiblePosition(); i++) {
-                Message message = (Message) listView.getItemAtPosition(i);
-                if (message != null && message.isEphemeral()) {
-                    ephemeral = true;
-                    break;
-                }
-            }
+//            for (int i = listView.getFirstVisiblePosition(); i <= listView.getLastVisiblePosition(); i++) {
+//                Message message = (Message) listView.getItemAtPosition(i);
+//                if (message != null && message.isEphemeral()) {
+//                    ephemeral = true;
+//                    break;
+//                }
+//            }
             if (ephemeral) {
                 getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
             } else {
