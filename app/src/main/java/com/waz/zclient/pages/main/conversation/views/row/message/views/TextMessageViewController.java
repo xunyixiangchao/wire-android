@@ -68,13 +68,13 @@ public class TextMessageViewController extends MessageViewController implements 
         }
     };
 
-    private final View.OnLongClickListener onLongClickListener = new View.OnLongClickListener() {
-        @Override
-        public boolean onLongClick(View v) {
-            messageViewsContainer.onItemLongClick(message, TextMessageViewController.this);
-            return true;
-        }
-    };
+//    private final View.OnLongClickListener onLongClickListener = new View.OnLongClickListener() {
+//        @Override
+//        public boolean onLongClick(View v) {
+//            messageViewsContainer.onItemLongClick(message, TextMessageViewController.this);
+//            return true;
+//        }
+//    };
 
     @SuppressLint("InflateParams")
     public TextMessageViewController(Context context, final MessageViewsContainer messageViewsContainer) {
@@ -85,7 +85,7 @@ public class TextMessageViewController extends MessageViewController implements 
         textView.setMessageViewsContainer(messageViewsContainer);
         View textContainer = ViewUtils.getView(view, R.id.ll__row_conversation__message_container);
         textContainer.setOnClickListener(onClickListener);
-        textContainer.setOnLongClickListener(onLongClickListener);
+//        textContainer.setOnLongClickListener(onLongClickListener);
         textView.setOnClickListener(onClickListener);
         textView.setCallback(this);
         ephemeralDotAnimationView = ViewUtils.getView(view, R.id.edav__ephemeral_view);

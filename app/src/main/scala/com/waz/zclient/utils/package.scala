@@ -46,6 +46,9 @@ package object utils {
       override def onClick(v: View): Unit = f
     })
 
+    def onLongClick(f: => Boolean): Unit = view.setOnLongClickListener(new OnLongClickListener {
+      override def onLongClick(v: View): Boolean = f
+    })
   }
 
   implicit class RichSeekBar(val bar: SeekBar) extends AnyVal {

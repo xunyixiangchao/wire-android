@@ -20,6 +20,7 @@ package com.waz.zclient.controllers.tracking.events.conversation;
 import android.support.annotation.NonNull;
 import com.waz.zclient.core.controllers.tracking.attributes.Attribute;
 import com.waz.zclient.core.controllers.tracking.events.Event;
+import com.waz.zclient.pages.main.conversation.views.MessageBottomSheetDialog;
 
 public class OpenedMessageActionEvent extends Event {
 
@@ -29,17 +30,39 @@ public class OpenedMessageActionEvent extends Event {
         COPY("copy"),
         EDIT("edit"),
         FORWARD("forward"),
+        OTHER("other"),
         ;
 
         public final String name;
         Target(String name) {
             this.name = name;
         }
+
+        public static Target forAction(MessageBottomSheetDialog.MessageAction action) {
+            switch (action) {
+                case DELETE_GLOBAL:
+                    return Target.DELETE_FOR_EVERYONE;
+                case DELETE_LOCAL:
+                    return Target.DELETE_FOR_ME;
+                case EDIT:
+                    return Target.EDIT;
+                case COPY:
+                    return Target.COPY;
+                case FORWARD:
+                    return Target.FORWARD;
+                default:
+                    return Target.OTHER;
+            }
+        }
     }
 
     public OpenedMessageActionEvent(Target target, String messageType) {
         attributes.put(Attribute.ACTION, target.name());
         attributes.put(Attribute.TYPE, messageType);
+    }
+
+    public static OpenedMessageActionEvent forAction(MessageBottomSheetDialog.MessageAction action, String messageType) {
+        return new OpenedMessageActionEvent(Target.forAction(action), messageType);
     }
 
     public static OpenedMessageActionEvent deleteForMe(String messageType) {

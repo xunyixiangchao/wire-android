@@ -17,10 +17,10 @@
  */
 package com.waz
 
-import android.app.{NotificationManager, Activity, ActivityManager, Application}
-import android.content.{ContentResolver, Context, ContextWrapper}
+import android.app.{Activity, ActivityManager, Application, NotificationManager}
+import android.content.{ClipboardManager, ContentResolver, Context, ContextWrapper}
 import android.media.AudioManager
-import android.os.{Vibrator, PowerManager}
+import android.os.{PowerManager, Vibrator}
 import android.support.v4.app.{FragmentActivity, FragmentManager}
 import com.waz.utils.events.EventContext
 
@@ -40,6 +40,7 @@ package object zclient {
     bind [Vibrator]             to ctx.getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[Vibrator]
     bind [AudioManager]         to ctx.getSystemService(Context.AUDIO_SERVICE).asInstanceOf[AudioManager]
     bind [NotificationManager]  to ctx.getSystemService(Context.NOTIFICATION_SERVICE).asInstanceOf[NotificationManager]
+    bind [ClipboardManager]     to ctx.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
   }
 
   def ContextModule(ctx: WireContext) = new Module {

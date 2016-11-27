@@ -28,9 +28,11 @@ import com.waz.zclient.common.controllers.{PermissionActivity, PermissionsContro
 import com.waz.zclient.controllers.global.{AccentColorController, KeyboardController, SelectionController}
 import com.waz.zclient.controllers.navigation.INavigationController
 import com.waz.zclient.controllers.theme.IThemeController
+import com.waz.zclient.controllers.tracking.ITrackingController
+import com.waz.zclient.controllers.userpreferences.IUserPreferencesController
 import com.waz.zclient.controllers.{BrowserController, DefaultControllerFactory, IControllerFactory, ScreenController}
 import com.waz.zclient.core.stores.IStoreFactory
-import com.waz.zclient.messages.controllers.NavigationController
+import com.waz.zclient.messages.controllers.{MessageActionsController, NavigationController}
 import com.waz.zclient.messages.parts.{AssetController, FooterController}
 import com.waz.zclient.messages.{MessageViewFactory, SyncEngineSignals}
 import com.waz.zclient.notifications.controllers.{CallingNotificationsController, ImageNotificationsController, MessageNotificationsController}
@@ -62,6 +64,9 @@ object WireApplication {
     bind [IThemeController]              toProvider controllerFactory.getThemeController
     bind [IConversationScreenController] toProvider controllerFactory.getConversationScreenController
     bind [INavigationController]         toProvider controllerFactory.getNavigationController
+    bind [IUserPreferencesController]    toProvider controllerFactory.getUserPreferencesController
+    bind [ITrackingController]           toProvider controllerFactory.getTrackingController
+    bind [IConversationScreenController] toProvider controllerFactory.getConversationScreenController
 
     // global controllers
     bind [AccentColorController]   to new AccentColorController()
@@ -78,10 +83,12 @@ object WireApplication {
   def services(ctx: WireContext) = new Module {
     bind [ZMessagingApi]      to new ZMessagingApiProvider(ctx).api
     bind [Signal[ZMessaging]] to inject[ZMessagingApi].asInstanceOf[com.waz.api.impl.ZMessagingApi].ui.currentZms.collect{case Some(zms)=> zms }
-    bind [Signal[NetworkMode]]
   }
 
   def controllers(implicit ctx: WireContext) = new Module {
+
+    private implicit val eventContext = ctx.eventContext
+
     bind [KeyboardController]        to new KeyboardController()
     bind [CurrentCallController]     to new CurrentCallController()
     bind [CallPermissionsController] to new CallPermissionsController()
@@ -95,6 +102,7 @@ object WireApplication {
     bind [FooterController]          to new FooterController()
     bind [ScreenController]          to new ScreenController()
     bind [NavigationController]      to new NavigationController()
+    bind [MessageActionsController]  to new MessageActionsController()
   }
 }
 

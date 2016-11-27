@@ -87,8 +87,9 @@ lazy val app = Project("zclient-app", file("app"))
     debugIncludesTests := false,
     useProguard := true,
     useProguardInDebug := true,
-    proguardOptions ++= IO.readLines(file("app") / "proguard-rules.txt"),
-    proguardConfig ++= IO.readLines(file("app") / "proguard-rules.txt"),
+    proguardConfig ++=
+        IO.readLines(file("app") / "proguard-rules.txt") ++
+        Option(file("proguard-sbt.txt")).filter(_.exists).fold(Seq.empty[String])(IO.readLines(_)),
     typedResources := false,
     retrolambdaEnabled := false,
     dexMulti := true,

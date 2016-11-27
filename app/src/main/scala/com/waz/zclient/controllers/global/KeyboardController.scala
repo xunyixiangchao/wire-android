@@ -21,10 +21,20 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Rect
 import android.view.ViewTreeObserver
+import com.waz.threading.CancellableFuture
 import com.waz.utils.events.Signal
+import com.waz.zclient.{Injectable, Injector}
+import com.waz.zclient.ui.utils.KeyboardUtils
 import com.waz.zclient.utils.ViewUtils
 
-class KeyboardController(implicit cxt: Context) extends ViewTreeObserver.OnGlobalLayoutListener {
+import scala.concurrent.Future
+import scala.concurrent.duration._
+
+class KeyboardController(implicit inj: Injector) extends ViewTreeObserver.OnGlobalLayoutListener with Injectable {
+  import KeyboardController._
+  import com.waz.threading.Threading.Implicits.Ui
+
+  private val cxt = inject[Context]
 
   val keyboardVisibility = Signal(false)
   val keyboardHeight = Signal(0)
@@ -46,5 +56,16 @@ class KeyboardController(implicit cxt: Context) extends ViewTreeObserver.OnGloba
       keyboardHeight ! kbHeight
   }
 
+  def hideKeyboardIfVisible(): Future[Unit] =
+    if (KeyboardUtils.isKeyboardVisible(cxt)) {
+      KeyboardUtils.hideKeyboard(inject[Activity])
+      CancellableFuture.delayed(HideDelay) {}
+    } else
+      Future.successful(())
+
   rootLayout.foreach (rootLayout => rootLayout.getViewTreeObserver.addOnGlobalLayoutListener(this))
+}
+
+object KeyboardController {
+  private val HideDelay = 200.millis
 }

@@ -52,6 +52,4 @@ public interface MessageViewsContainer extends ServiceContainer {
     void openSettings();
 
     void openDevicesPage(OtrDestination otrDestination, View anchorView);
-
-    boolean onItemLongClick(Message message, MessageViewController messageViewController);
 }

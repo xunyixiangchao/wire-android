@@ -115,8 +115,9 @@ public abstract class MessageViewController implements ConversationItemViewContr
     @Override
     @CallSuper
     public boolean onLongClick(View v) {
-        v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-        return messageViewsContainer.onItemLongClick(message, this);
+//        v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+//        return messageViewsContainer.onItemLongClick(message, this);
+        return false;
     }
 
     public void closeExtras(){

@@ -20,7 +20,7 @@ package com.waz.zclient.messages
 import android.content.Context
 import android.text.format.DateFormat
 import android.util.AttributeSet
-import android.view.{View, ViewGroup}
+import android.view.{HapticFeedbackConstants, View, ViewGroup}
 import android.widget.LinearLayout
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
@@ -34,6 +34,7 @@ import com.waz.utils.events.Signal
 import com.waz.zclient.controllers.global.SelectionController
 import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.MsgPart._
+import com.waz.zclient.messages.controllers.MessageActionsController
 import com.waz.zclient.ui.text.TypefaceTextView
 import com.waz.zclient.utils.ContextUtils._
 import com.waz.zclient.utils.DateConvertUtils.asZonedDateTime
@@ -51,7 +52,11 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
 
   private val factory = inject[MessageViewFactory]
   private val selection = inject[SelectionController].messages
+  private lazy val messageActions = inject[MessageActionsController]
+
   private var msgId: MessageId = _
+  private var msg: MessageData = MessageData.Empty
+  private var data: MessageAndLikes = MessageAndLikes.Empty
 
   private var separator = Option.empty[TimeSeparator]
   private var footer = Option.empty[Footer]
@@ -60,11 +65,17 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
     selection.toggleFocused(msgId)
   }
 
+  this.onLongClick {
+    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+    messageActions.showDialog(data)
+  }
+
   private var pos = -1 //messages position for debugging only
 
   def set(mAndL: MessageAndLikes, prev: Option[MessageData], opts: MsgOptions): Unit = {
-    val msg = mAndL.message
-    this.pos = opts.position
+    data = mAndL
+    msg = mAndL.message
+    pos = opts.position
     msgId = msg.id
     verbose(s"set $pos, $mAndL")
 

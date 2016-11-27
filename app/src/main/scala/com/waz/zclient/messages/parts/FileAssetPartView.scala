@@ -32,7 +32,9 @@ import com.waz.api.AssetStatus._
 import com.waz.threading.Threading
 import com.waz.zclient.R
 import com.waz.zclient.messages.MsgPart
+import com.waz.zclient.messages.controllers.MessageActionsController
 import com.waz.zclient.messages.parts.DeliveryState._
+import com.waz.zclient.pages.main.conversation.views.MessageBottomSheetDialog.MessageAction
 import com.waz.zclient.ui.text.GlyphTextView
 import com.waz.zclient.ui.utils.TypefaceUtils
 import com.waz.zclient.utils.ContextUtils._
@@ -43,8 +45,9 @@ import scala.util.Success
 class FileAssetPartView(context: Context, attrs: AttributeSet, style: Int) extends FrameLayout(context, attrs, style) with ActionableAssetPart {
   self =>
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
-
   def this(context: Context) = this(context, null, 0)
+
+  private val messageActionsController = inject[MessageActionsController]
 
   override val tpe: MsgPart = MsgPart.FileAsset
 
@@ -56,6 +59,12 @@ class FileAssetPartView(context: Context, attrs: AttributeSet, style: Int) exten
 
   asset.map(_._1.name.getOrElse("")).on(Threading.Ui)(fileNameView.setText)
   asset.map(_._2).map(_ == DOWNLOAD_DONE).map { case true => View.VISIBLE; case false => View.GONE }.on(Threading.Ui)(downloadedIndicator.setVisibility)
+
+  messageActionsController.onMessageAction {
+    case (MessageAction.OPEN_FILE, msg) if message.currentValue.exists(_.id.str == msg.getId) => // FIXME: that check is ugly
+      // TODO: startAssetDownLoad();
+    case _ => // ignore
+  }
 
   val sizeAndExt = asset.map {
     case (a, _) =>

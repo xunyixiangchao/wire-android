@@ -81,10 +81,7 @@ import com.waz.api.UpdateListener;
 import com.waz.api.User;
 import com.waz.api.UsersList;
 import com.waz.api.Verification;
-import com.waz.zclient.BaseScalaActivity;
-import com.waz.zclient.BuildConfig;
-import com.waz.zclient.OnBackPressedListener;
-import com.waz.zclient.R;
+import com.waz.zclient.*;
 import com.waz.zclient.camera.controllers.GlobalCameraController;
 import com.waz.zclient.controllers.IControllerFactory;
 import com.waz.zclient.controllers.accentcolor.AccentColorObserver;
@@ -132,6 +129,7 @@ import com.waz.zclient.core.stores.inappnotification.InAppNotificationStoreObser
 import com.waz.zclient.core.stores.inappnotification.KnockingEvent;
 import com.waz.zclient.core.stores.network.DefaultNetworkAction;
 import com.waz.zclient.core.stores.participants.ParticipantsStoreObserver;
+import com.waz.zclient.messages.controllers.EditActionSupport;
 import com.waz.zclient.notifications.controllers.ImageNotificationsController;
 import com.waz.zclient.pages.BaseFragment;
 import com.waz.zclient.pages.extendedcursor.ExtendedCursorContainer;
@@ -226,9 +224,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
     private static final String[] AUDIO_PERMISSION = new String[] {android.Manifest.permission.RECORD_AUDIO};
     private static final int AUDIO_PERMISSION_REQUEST_ID = 864;
     private static final int AUDIO_FILTER_PERMISSION_REQUEST_ID = 865;
-
-    private static final String[] SAVE_IMAGE_PERMISSIONS = new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE};
-    private static final int SAVE_IMAGE_PERMISSION_REQUEST_ID = 6;
 
     private InputStateIndicator inputStateIndicator;
     private UpdateListener typingListener;
@@ -383,65 +378,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
         }
     };
 
-    private final MessageBottomSheetDialog.Callback messageBottomSheetDialogCallback = new MessageBottomSheetDialog.Callback() {
-
-        @Override
-        public void onAction(MessageBottomSheetDialog.MessageAction action, Message message, MessageViewController messageViewController) {
-            switch (action) {
-                case COPY:
-                    copyMessage(message);
-                    getControllerFactory().getTrackingController().tagEvent(OpenedMessageActionEvent.copy(message.getMessageType().name()));
-                    break;
-
-                case DELETE_GLOBAL:
-                    deleteMessage(message, true);
-                    getControllerFactory().getTrackingController().tagEvent(OpenedMessageActionEvent.deleteForEveryone(message.getMessageType().name()));
-                    break;
-
-                case DELETE_LOCAL:
-                    deleteMessage(message, false);
-                    getControllerFactory().getTrackingController().tagEvent(OpenedMessageActionEvent.deleteForMe(message.getMessageType().name()));
-                    break;
-
-                case EDIT:
-                    editMessage(message);
-                    getControllerFactory().getTrackingController().tagEvent(OpenedMessageActionEvent.edit(message.getMessageType().name()));
-                    break;
-
-                case FORWARD:
-                    forwardMessage(message);
-                    getControllerFactory().getTrackingController().tagEvent(OpenedMessageActionEvent.forward(message.getMessageType().name()));
-                    break;
-                case LIKE:
-                case UNLIKE:
-                    if (message.isLikedByThisUser()) {
-                        message.unlike();
-                        getControllerFactory().getTrackingController().tagEvent(ReactedToMessageEvent.unlike(message.getConversation(),
-                                                                                                             message,
-                                                                                                             ReactedToMessageEvent.Method.MENU));
-                    } else {
-                        message.like();
-                        getControllerFactory().getUserPreferencesController().setPerformedAction(IUserPreferencesController.LIKED_MESSAGE);
-                        getControllerFactory().getTrackingController().tagEvent(ReactedToMessageEvent.like(message.getConversation(),
-                                                                                                           message,
-                                                                                                           ReactedToMessageEvent.Method.MENU));
-                    }
-                    break;
-                case SAVE:
-                    saveMessage(message);
-//                    break;
-//                case OPEN_FILE:
-//                    if (message.getMessageType() == Message.Type.ANY_ASSET &&
-//                        messageViewController instanceof FileMessageViewController) {
-//                        ((FileMessageViewController) messageViewController).startAssetDownLoad();
-//                    }
-                    break;
-                default:
-                    ExceptionHandler.saveException(new RuntimeException("Unhandled action"), null, null);
-            }
-        }
-    };
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     //  Lifecycle
@@ -525,6 +461,7 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
         extendedCursorContainer = ViewUtils.getView(view, R.id.ecc__conversation);
         containerPreview = ViewUtils.getView(view, R.id.fl__conversation_overlay);
         cursorLayout = ViewUtils.getView(view, R.id.cl__cursor);
+        new EditActionSupport((WireContext) getActivity(), cursorLayout); // TODO: remove that once cursorLayout is reimplemented in scala
         audioMessageRecordingView = ViewUtils.getView(view, R.id.amrv_audio_message_recording);
         toolbar = ViewUtils.getView(view, R.id.t_conversation_toolbar);
         toolbarTitle = ViewUtils.getView(toolbar, R.id.tv__conversation_toolbar__title);
@@ -1299,58 +1236,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
     }
 
     @Override
-    public boolean onItemLongClick(final Message message, final MessageViewController messageViewController) {
-        if (messageBottomSheetDialog != null) {
-            if (messageBottomSheetDialog.isShowing()) {
-                messageBottomSheetDialog.dismiss();
-            }
-            messageBottomSheetDialog = null;
-        }
-        if (message == null || message.isEphemeral()) {
-            return false;
-        }
-        final boolean isMemberOfConversation = getStoreFactory().getConversationStore().getCurrentConversation().isMemberOfConversation();
-        if (KeyboardUtils.isKeyboardVisible(getContext())) {
-            KeyboardUtils.hideKeyboard(getActivity());
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (getActivity() == null) {
-                        return;
-                    }
-                    messageBottomSheetDialog = new MessageBottomSheetDialog(getContext(),
-                                                                            R.style.message__bottom_sheet__base,
-                                                                            message,
-                                                                            messageViewController,
-                                                                            isMemberOfConversation,
-                                                                            messageBottomSheetDialogCallback);
-                    messageBottomSheetDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                        @Override
-                        public void onDismiss(DialogInterface dialog) {
-                            messageBottomSheetDialog = null;
-                        }
-                    });
-                    messageBottomSheetDialog.show();
-                }
-            }, BOTTOM_MENU_DISPLAY_DELAY_MS);
-        } else {
-            messageBottomSheetDialog = new MessageBottomSheetDialog(getContext(),
-                                                                    R.style.message__bottom_sheet__base,
-                                                                    message, messageViewController,
-                                                                    isMemberOfConversation,
-                                                                    messageBottomSheetDialogCallback);
-            messageBottomSheetDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                @Override
-                public void onDismiss(DialogInterface dialog) {
-                    messageBottomSheetDialog = null;
-                }
-            });
-            messageBottomSheetDialog.show();
-        }
-        return true;
-    }
-
-    @Override
     public void onOpenUrl(String url) {
         getContainer().onOpenUrl(url);
     }
@@ -1805,13 +1690,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
                                    Toast.LENGTH_SHORT).show();
                 }
                 break;
-            case SAVE_IMAGE_PERMISSION_REQUEST_ID:
-                if (PermissionUtils.verifyPermissions(grantResults)) {
-                    saveImageAssetToGallery();
-                } else {
-                    unableToSaveImageNoPermissions();
-                }
-                break;
             default:
                 break;
         }
@@ -2214,207 +2092,6 @@ public class ConversationFragment extends BaseFragment<ConversationFragment.Cont
         if (!getControllerFactory().getUserPreferencesController().isCursorSendButtonEnabled() || TextUtils.isEmpty(cursorLayout.getText())) {
             cursorLayout.showSendButton(false);
         }
-    }
-
-    private void editMessage(final Message message) {
-        if (cursorLayout == null) {
-            return;
-        }
-        cursorLayout.editMessage(message);
-
-        getControllerFactory().getConversationScreenController().setMessageBeingEdited(message);
-
-        // Add small delay so triggering keyboard works
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                KeyboardUtils.showKeyboard(getActivity());
-            }
-        }, 200);
-    }
-
-    private void deleteMessage(final Message message, final boolean forEveryone) {
-        Dialog dialog = new AlertDialog.Builder(getContext())
-            .setTitle(forEveryone ? R.string.conversation__message_action__delete_for_everyone : R.string.conversation__message_action__delete_for_me)
-            .setMessage(R.string.conversation__message_action__delete_details)
-            .setCancelable(true)
-            .setNegativeButton(R.string.conversation__message_action__delete__dialog__cancel, null)
-            .setPositiveButton(R.string.conversation__message_action__delete__dialog__ok,
-                               new DialogInterface.OnClickListener() {
-                                   @Override
-                                   public void onClick(DialogInterface dialog, int which) {
-                                       if (forEveryone) {
-                                           message.recall();
-                                       } else {
-                                           message.delete();
-                                       }
-                                       Toast.makeText(getContext(), R.string.conversation__message_action__delete__confirmation, Toast.LENGTH_SHORT).show();
-                                       getControllerFactory().getTrackingController().tagEvent(new DeletedMessageEvent(message, forEveryone));
-                                   }
-                               })
-            .create();
-        dialog.show();
-    }
-
-    private void copyMessage(Message message) {
-        getControllerFactory().getTrackingController().tagEvent(new CopiedMessageEvent(message.getMessageType().name()));
-
-        ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData clip = ClipData.newPlainText(getContext().getString(R.string.conversation__action_mode__copy__description,
-                                                                     message.getUser().getDisplayName()),
-                                              message.getBody());
-        clipboard.setPrimaryClip(clip);
-        Toast.makeText(getContext(), R.string.conversation__action_mode__copy__toast, Toast.LENGTH_SHORT).show();
-    }
-
-    private void forwardMessage(final Message message) {
-        getControllerFactory().getTrackingController().tagEvent(new ForwardedMessageEvent(message.getMessageType().name()));
-
-        final ShareCompat.IntentBuilder intentBuilder = ShareCompat.IntentBuilder.from(getActivity());
-        intentBuilder.setChooserTitle(R.string.conversation__action_mode__fwd__chooser__title);
-        switch (message.getMessageType()) {
-            case TEXT:
-            case RICH_MEDIA:
-                intentBuilder.setType("text/plain");
-                intentBuilder.setText(message.getBody());
-                intentBuilder.startChooser();
-                break;
-            case ANY_ASSET:
-            case VIDEO_ASSET:
-            case AUDIO_ASSET:
-            case ASSET:
-                final ProgressDialog dialog = ProgressDialog.show(getContext(),
-                                                                  getString(R.string.conversation__action_mode__fwd__dialog__title),
-                                                                  getString(R.string.conversation__action_mode__fwd__dialog__message),
-                                                                  true, true, null);
-                // TODO: Once https://wearezeta.atlassian.net/browse/CM-976 is resolved, this 'if' block can be removed
-                if (message.getMessageType() == Message.Type.ASSET) {
-                    final ImageAsset imageAsset = message.getImage();
-                    intentBuilder.setType(imageAsset.getMimeType());
-                    imageAsset.saveImageToGallery(new ImageAsset.SaveCallback() {
-                        @Override
-                        public void imageSaved(Uri uri) {
-                            if (getActivity() == null) {
-                                return;
-                            }
-                            dialog.dismiss();
-                            intentBuilder.addStream(uri);
-                            intentBuilder.startChooser();
-                        }
-
-                        @Override
-                        public void imageSavingFailed(Exception ex) {
-                            if (getActivity() == null) {
-                                return;
-                            }
-                            dialog.dismiss();
-                        }
-                    });
-                } else {
-                    final Asset messageAsset = message.getAsset();
-                    intentBuilder.setType(messageAsset.getMimeType());
-                    messageAsset.getContentUri(new Asset.LoadCallback<Uri>() {
-                        @Override
-                        public void onLoaded(Uri uri) {
-                            if (getActivity() == null) {
-                                return;
-                            }
-                            dialog.dismiss();
-                            intentBuilder.addStream(uri);
-                            intentBuilder.startChooser();
-                        }
-
-                        @Override
-                        public void onLoadFailed() {
-                            if (getActivity() == null) {
-                                return;
-                            }
-                            dialog.dismiss();
-                        }
-                    });
-                }
-                break;
-        }
-    }
-
-    private void saveMessage(Message message) {
-        if (message.getMessageType() == Message.Type.ASSET) {
-            imageAssetToSave = message.getImage();
-            if (PermissionUtils.hasSelfPermissions(getActivity(), SAVE_IMAGE_PERMISSIONS)) {
-                saveImageAssetToGallery();
-            } else {
-                ActivityCompat.requestPermissions(getActivity(),
-                                                  SAVE_IMAGE_PERMISSIONS,
-                                                  SAVE_IMAGE_PERMISSION_REQUEST_ID);
-            }
-        } else {
-            final ProgressDialog dialog = ProgressDialog.show(getContext(),
-                                                              getString(R.string.conversation__action_mode__fwd__dialog__title),
-                                                              getString(R.string.conversation__action_mode__fwd__dialog__message),
-                                                              true, true, null);
-            final Asset asset = message.getAsset();
-            asset.saveToDownloads(new Asset.LoadCallback() {
-
-                @Override
-                public void onLoaded(Object o) {
-                    if (getActivity() == null ||
-                        getControllerFactory() == null ||
-                        getControllerFactory().isTornDown()) {
-                        return;
-                    }
-                    getControllerFactory().getTrackingController().tagEvent(new SavedFileEvent(asset.getMimeType(),
-                                                                                               (int) asset.getSizeInBytes()));
-                    Toast.makeText(getActivity(),
-                                   com.waz.zclient.ui.R.string.content__file__action__save_completed,
-                                   Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                }
-
-                @Override
-                public void onLoadFailed() {
-                    if (getActivity() == null ||
-                        getControllerFactory() == null ||
-                        getControllerFactory().isTornDown()) {
-                        return;
-                    }
-                    Toast.makeText(getActivity(),
-                                   com.waz.zclient.ui.R.string.content__file__action__save_error,
-                                   Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                }
-            });
-        }
-    }
-
-    private void saveImageAssetToGallery() {
-        if (imageAssetToSave == null) {
-            return;
-        }
-        imageAssetToSave.saveImageToGallery(new ImageAsset.SaveCallback() {
-
-            @Override
-            public void imageSaved(Uri uri) {
-                if (getControllerFactory() == null ||
-                    getControllerFactory().isTornDown()) {
-                    return;
-                }
-                ((BaseScalaActivity) getActivity())
-                    .injectJava(ImageNotificationsController.class)
-                    .showImageSavedNotification(imageAssetToSave.getId(), uri);
-                Toast.makeText(getContext(), R.string.message_bottom_menu_action_save_ok, Toast.LENGTH_SHORT).show();
-                imageAssetToSave = null;
-            }
-
-            @Override
-            public void imageSavingFailed(Exception ex) {
-                unableToSaveImageNoPermissions();
-            }
-        });
-    }
-
-    private void unableToSaveImageNoPermissions() {
-        imageAssetToSave = null;
-        Toast.makeText(getContext(), R.string.message_bottom_menu_action_save_fail, Toast.LENGTH_SHORT).show();
     }
 
     private void checkEphemeralMessageOnScreen() {
