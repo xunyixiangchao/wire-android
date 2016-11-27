@@ -179,7 +179,9 @@ class ChatheadView(val context: Context, val attrs: AttributeSet, val defStyleAt
         canvas.drawText(initials, radius, getVerticalTextCenter(initialsTextPaint, radius), initialsTextPaint)
       }
     } { bitmap =>
-      canvas.drawBitmap(bitmap, null, new RectF(0, 0, size, size), backgroundPaint)
+      val x = (getWidth - size) / 2
+      val y = (getHeight - size) / 2
+      canvas.drawBitmap(bitmap, null, new RectF(x, y, x + size, y + size), backgroundPaint)
     }
 
     // Cut out
