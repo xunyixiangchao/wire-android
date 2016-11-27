@@ -23,6 +23,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.{LinearLayout, RelativeLayout}
 import com.waz.ZLog.ImplicitTag._
+import com.waz.api.Message
 import com.waz.model._
 import com.waz.service.ZMessaging
 import com.waz.threading.Threading
@@ -30,10 +31,12 @@ import com.waz.utils.events.Signal
 import com.waz.zclient.common.views.ChatheadView
 import com.waz.zclient.controllers.global.AccentColorController
 import com.waz.zclient.messages.MessageView.MsgOptions
-import com.waz.zclient.ui.text.TypefaceTextView
+import com.waz.zclient.ui.text.{GlyphTextView, TypefaceTextView}
 import com.waz.zclient.ui.theme.ThemeUtils
 import com.waz.zclient.utils.ContextUtils.{getColor, getDimenPx}
+import com.waz.zclient.utils._
 import com.waz.zclient.{R, ViewHelper}
+import org.threeten.bp.Instant
 
 class SeparatorView(context: Context, attrs: AttributeSet, style: Int) extends RelativeLayout(context, attrs, style) with TimeSeparator {
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
@@ -73,8 +76,6 @@ class UnreadDot(context: Context, attrs: AttributeSet, style: Int) extends View(
   override def onDraw(canvas: Canvas): Unit = if (show.currentValue.getOrElse(false)) canvas.drawCircle(getWidth / 2, getHeight / 2, dotRadius, dotPaint)
 }
 
-// TODO: replace LinearLayout with TextView, set chathead as compound drawable
-// TODO: show trash icon for recalled messages
 class UserPartView(context: Context, attrs: AttributeSet, style: Int) extends LinearLayout(context, attrs, style) with MessageViewPart with ViewHelper {
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
 
@@ -86,19 +87,34 @@ class UserPartView(context: Context, attrs: AttributeSet, style: Int) extends Li
 
   private val chathead: ChatheadView = findById(R.id.chathead)
   private val tvName: TypefaceTextView = findById(R.id.tvName)
+  private val tvStateGlyph: GlyphTextView = findById(R.id.gtvStateGlyph)
 
   private val zms = inject[Signal[ZMessaging]]
   private val userId = Signal[UserId]()
+  private val message = Signal[MessageData]
 
   private val user = Signal(zms, userId).flatMap {
     case (z, id) => z.usersStorage.signal(id)
+  }
+
+  private val stateGlyph = message map {
+    case m if m.msgType == Message.Type.RECALLED => Some(R.string.glyph__trash)
+    case m if m.editTime != Instant.EPOCH => Some(R.string.glyph__edit)
+    case _ => None
   }
 
   userId(chathead.setUserId)
 
   user.map(_.getDisplayName).on(Threading.Ui)(tvName.setTransformedText)
 
-  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = userId ! msg.userId
+  stateGlyph.map(_.isDefined) { tvStateGlyph.setVisible }
+
+  stateGlyph.collect { case Some(glyph) => glyph } { tvStateGlyph.setText }
+
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
+    userId ! msg.userId
+    message ! msg
+  }
 }
 
 class EmptyPartView(context: Context, attrs: AttributeSet, style: Int) extends View(context, attrs, style) with MessageViewPart {

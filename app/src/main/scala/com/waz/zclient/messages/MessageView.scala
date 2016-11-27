@@ -38,7 +38,7 @@ import com.waz.zclient.utils.ContextUtils._
 import com.waz.zclient.utils.DateConvertUtils.asZonedDateTime
 import com.waz.zclient.utils.ZTimeFormatter._
 import com.waz.zclient.utils._
-import com.waz.zclient.{R, ViewHelper}
+import com.waz.zclient.{BuildConfig, R, ViewHelper}
 import org.threeten.bp.{Instant, LocalDateTime, ZoneId}
 
 class MessageView(context: Context, attrs: AttributeSet, style: Int) extends LinearLayout(context, attrs, style) with ViewHelper {
@@ -67,12 +67,13 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
     msgId = msg.id
     verbose(s"set $pos, $mAndL")
 
-    val contentParts =
+    val contentParts = {
       if (msg.msgType != Message.Type.RICH_MEDIA) Seq(MsgPart(msg.msgType) -> None)
       else msg.content map { content => MsgPart(content.tpe) -> Some(content) }
+    } .filter(_ != MsgPart.Empty)
 
     val parts =
-      if (contentParts.forall(_._1 == MsgPart.Empty)) Nil // don't display anything for unknown message
+      if (!BuildConfig.DEBUG && contentParts.forall(_._1 == MsgPart.Unknown)) Nil // don't display anything for unknown message
       else {
         val builder = Seq.newBuilder[(MsgPart, Option[MessageContent])]
 
@@ -114,9 +115,10 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
   private def shouldShowChathead(msg: MessageData, prev: Option[MessageData]) = {
     val userChanged = prev.forall(m => m.userId != msg.userId || m.isSystemMessage)
     val recalled = msg.msgType == Message.Type.RECALLED
-    val knock = msg.msgType != Message.Type.KNOCK
+    val edited = msg.editTime != Instant.EPOCH
+    val knock = msg.msgType == Message.Type.KNOCK
 
-    recalled || !msg.isSystemMessage && !knock && userChanged
+    !knock && !msg.isSystemMessage && (recalled || edited || userChanged)
   }
 
   private def setParts(msg: MessageAndLikes, parts: Seq[(MsgPart, Option[MessageContent])], opts: MsgOptions) = {
@@ -258,6 +260,7 @@ object MsgPart {
   case object OtrMessage extends MsgPart
   case object Empty extends MsgPart
   case object MissedCall extends MsgPart
+  case object Unknown extends MsgPart
 
   def apply(msgType: Message.Type): MsgPart = {
     import Message.Type._
@@ -273,10 +276,11 @@ object MsgPart {
       case OTR_ERROR | OTR_DEVICE_ADDED | OTR_IDENTITY_CHANGED | OTR_UNVERIFIED | OTR_VERIFIED | HISTORY_LOST | STARTED_USING_DEVICE => OtrMessage
       case KNOCK => Ping
       case RENAME => Rename
-      case UNKNOWN | RICH_MEDIA => Empty // RICH_MEDIA will be handled separately
-      case RECALLED => Empty // recalled messages only have an icon in header
       case MISSED_CALL => MissedCall
-      case CONNECT_ACCEPTED | INCOMING_CALL  => Empty // TODO: implement view parts
+      case RECALLED => Empty // recalled messages only have an icon in header
+      case CONNECT_ACCEPTED | INCOMING_CALL => Empty // those are never used in messages (only in notifications)
+      case RICH_MEDIA => Empty // RICH_MEDIA will be handled separately
+      case UNKNOWN => Unknown
     }
   }
 
