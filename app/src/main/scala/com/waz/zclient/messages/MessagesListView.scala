@@ -29,7 +29,7 @@ import com.waz.service.messages.MessageAndLikes
 import com.waz.threading.{CancellableFuture, Threading}
 import com.waz.utils.events.{EventContext, Signal}
 import com.waz.zclient.controllers.global.SelectionController
-import com.waz.zclient.messages.ItemChangeAnimator.{FocusChanged, LikesChanged}
+import com.waz.zclient.messages.ItemChangeAnimator.ChangeInfo
 import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.ScrollController.Scroll
 import com.waz.zclient.messages.controllers.NavigationController
@@ -113,7 +113,7 @@ case class MessageViewHolder(view: MessageView, adapter: MessagesListAdapter)(im
   private var _hasLikes = false
 
   selection.focused.onChanged { f =>
-    if (_isFocused != f.contains(id)) adapter.notifyItemChanged(getAdapterPosition, FocusChanged)
+    if (_isFocused != f.contains(id)) adapter.notifyItemChanged(getAdapterPosition, ChangeInfo.Focus)
   }
 
   def hasLikes = _hasLikes
@@ -122,27 +122,26 @@ case class MessageViewHolder(view: MessageView, adapter: MessagesListAdapter)(im
 
   def shouldDisplayFooter = _isFocused || _hasLikes
 
-  def bind(msg: MessageAndLikes, prev: Option[MessageData], opts: MsgOptions, payloads: List[AnyRef]): Unit = {
+  def bind(msg: MessageAndLikes, prev: Option[MessageData], opts: MsgOptions, change: Option[ChangeInfo]): Unit = {
     id = msg.message.id
     _isFocused = selection.focused.currentValue.exists(_.contains(id))
     _hasLikes = msg.likes.nonEmpty
 
-    payloads.headOption.fold { //full update
-      view.set(msg, prev, opts)
-      view.getFooter.foreach{ f =>  //set initial state for footer
-        f.setVisible(shouldDisplayFooter)
-        if (f.isVisible) {
-          f.setContentTranslationY(if (hasLikes && isFocused) 0 else getDimen(R.dimen.content__footer__height)(itemView.getContext).toInt) //FIXME
+    change match {
+      case None => //full update
+        view.set(msg, prev, opts)
+        view.getFooter.foreach{ f =>  //set initial state for footer
+          f.setVisible(shouldDisplayFooter)
+          if (f.isVisible) {
+            f.setContentTranslationY(if (hasLikes && isFocused) 0 else getDimen(R.dimen.content__footer__height)(itemView.getContext).toInt) //FIXME
+          }
         }
-
-      }
-    } { // partial update
-      case FocusChanged => //nothing special to do
-      case LikesChanged => view.getFooter.foreach(_.updateLikes(msg.likedBySelf, msg.likes))
-      case _ => // not defined
+      case Some(ChangeInfo.Likes) =>
+        view.getFooter.foreach(_.updateLikes(msg.likedBySelf, msg.likes))
+      case Some(ChangeInfo.Focus) =>
+        //nothing special to do
     }
   }
-
 }
 
 

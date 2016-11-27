@@ -24,14 +24,12 @@ import android.view.ViewGroup
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
 import com.waz.service.ZMessaging
-import com.waz.service.messages.MessageAndLikes
 import com.waz.threading.Threading
 import com.waz.utils.events.{EventContext, EventStream, Signal}
 import com.waz.zclient.controllers.global.SelectionController
+import com.waz.zclient.messages.ItemChangeAnimator.ChangeInfo
 import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.{Injectable, Injector}
-
-import collection.JavaConverters._
 
 class MessagesListAdapter(listWidth: Signal[Int])(implicit inj: Injector, ec: EventContext) extends RecyclerView.Adapter[MessageViewHolder]() with Injectable with MessagesListView.Adapter { adapter =>
 
@@ -75,9 +73,16 @@ class MessagesListAdapter(listWidth: Signal[Int])(implicit inj: Injector, ec: Ev
     val isFirstUnread = pos > 0 && !isSelf && showUnreadAtPos.currentValue.exists { case (show, p) => show && p == pos }
     val opts = MsgOptions(pos, getItemCount, isSelf, isFirstUnread, listWidth.currentValue.getOrElse(0))
 
-    holder.bind(data, if (pos == 0) None else Some(message(pos - 1).message), opts, payloads.asScala.toList)
+    holder.bind(data, if (pos == 0) None else Some(message(pos - 1).message), opts, changeInfo(payloads))
     onBindView ! pos
   }
+
+  private def changeInfo(payloads: util.List[AnyRef]) =
+    if (payloads.size() != 1) None // we only handle single partial change, will default to full restart otherwise
+    else payloads.get(0) match {
+      case ci: ChangeInfo => Some(ci)
+      case _ => None
+    }
 
   val showUnreadAtPos = showUnreadDot.zip(nextUnreadIndex)
   showUnreadAtPos.onChanged.on(Threading.Ui) { case (_, pos) => notifyItemChanged(pos) }

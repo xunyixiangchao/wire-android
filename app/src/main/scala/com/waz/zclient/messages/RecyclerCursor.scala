@@ -28,7 +28,7 @@ import com.waz.service.messages.MessageAndLikes
 import com.waz.threading.Threading
 import com.waz.utils._
 import com.waz.utils.events.{EventContext, Signal, Subscription}
-import com.waz.zclient.messages.ItemChangeAnimator.{LikesChanged, Payload}
+import com.waz.zclient.messages.ItemChangeAnimator.ChangeInfo
 import com.waz.zclient.{Injectable, Injector}
 import org.threeten.bp.Instant
 
@@ -108,7 +108,7 @@ class RecyclerCursor(val conv: ConvId, zms: ZMessaging, adapter: RecyclerView.Ad
     verbose(s"likesChanged: $ids")
     storage.getAll(ids).map { msgs =>
       msgs foreach {
-        _ foreach { msg => window.onUpdated(msg, msg, LikesChanged) }
+        _ foreach { msg => window.onUpdated(msg, msg, ChangeInfo.Likes) }
       }
     }(Threading.Ui)
   }
@@ -202,7 +202,7 @@ class RecyclerCursor(val conv: ConvId, zms: ZMessaging, adapter: RecyclerView.Ad
       }
     }
 
-    def onUpdated(prev: MessageData, current: MessageData, payload: Payload) = {
+    def onUpdated(prev: MessageData, current: MessageData, payload: ChangeInfo) = {
       val pe = Entry(prev)
       val ce = Entry(current)
 

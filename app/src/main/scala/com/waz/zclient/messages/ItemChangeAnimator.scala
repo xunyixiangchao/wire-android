@@ -162,8 +162,9 @@ class ItemChangeAnimator extends DefaultItemAnimator {
 
 object ItemChangeAnimator {
 
-  trait Payload
-  case object FocusChanged extends Payload
-  case object LikesChanged extends Payload
-
+  trait ChangeInfo
+  object ChangeInfo {
+    case object Focus extends ChangeInfo
+    case object Likes extends ChangeInfo
+  }
 }
