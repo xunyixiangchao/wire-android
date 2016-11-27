@@ -731,7 +731,7 @@
     <dimen name="single_image_message__icon__adjust_to_right">-16dp</dimen>
 
     <dimen name="open_new_conversation__thread_list__max_top_distance">88dp</dimen>
-    <dimen name="row_conversation__missed_call__margin">11dp</dimen>
+    <dimen name="row_conversation__missed_call__margin">4dp</dimen>
     <dimen name="quick_reply__text_size">14dp</dimen>
     <dimen name="quick_reply__icon_size">@dimen/wire__text_size__huge</dimen>
     <dimen name="quick_reply__content_height">70dp</dimen>

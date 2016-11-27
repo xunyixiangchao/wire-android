@@ -63,6 +63,7 @@ class MessageViewFactory {
         case InviteBanner   => ViewHelper.inflate(R.layout.message_invite_banner, parent, false)
         case OtrMessage     => ViewHelper.inflate(R.layout.message_otr_part, parent, false)
         case SoundCloud     => ViewHelper.inflate(R.layout.message_text, parent, false) // TODO: implement media player
+        case MissedCall     => ViewHelper.inflate(R.layout.message_missed_call, parent, false)
         case Empty          => new EmptyPartView(parent.getContext)
       }
     }

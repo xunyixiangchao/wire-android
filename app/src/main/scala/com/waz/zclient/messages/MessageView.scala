@@ -113,8 +113,10 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
       })
   }
 
-  private def shouldShowChathead(msg: MessageData, prev: Option[MessageData]) =
-    !msg.isSystemMessage && msg.msgType != Message.Type.KNOCK && prev.forall(m => m.userId != msg.userId || m.isSystemMessage)
+  private def shouldShowChathead(msg: MessageData, prev: Option[MessageData]) = {
+    val userChanged = prev.forall(m => m.userId != msg.userId || m.isSystemMessage)
+    val recalled = msg.msgType == Message.Type.RECALLED
+    val knock = msg.msgType != Message.Type.KNOCK
 
   private def setParts(position: Int, msg: MessageAndLikes, parts: Seq[(MsgPart, Option[MessageContent])], isFirstUnread: Boolean) = {
     verbose(s"setParts: position: $position, parts: ${parts.map(_._1)}")
@@ -205,7 +207,7 @@ object MessageView {
     }
   }
 
-  def getTopMargin(prevTpe: Option[Message.Type], topPart: MsgPart)(implicit context: Context) = {
+  def getTopMargin(prevTpe: Option[Message.Type], topPart: MsgPart)(implicit context: Context): Int = {
     if (prevTpe.isEmpty)
       if (MarginRule(topPart) == MemberChange) toPx(24) else 0
     else {
@@ -252,6 +254,7 @@ object MsgPart {
   case object InviteBanner extends MsgPart
   case object OtrMessage extends MsgPart
   case object Empty extends MsgPart
+  case object MissedCall extends MsgPart
 
   def apply(msgType: Message.Type): MsgPart = {
     import Message.Type._
@@ -267,8 +270,10 @@ object MsgPart {
       case OTR_ERROR | OTR_DEVICE_ADDED | OTR_IDENTITY_CHANGED | OTR_UNVERIFIED | OTR_VERIFIED | HISTORY_LOST | STARTED_USING_DEVICE => OtrMessage
       case KNOCK => Ping
       case RENAME => Rename
-      case UNKNOWN | RICH_MEDIA => Empty
-      case CONNECT_ACCEPTED | INCOMING_CALL | MISSED_CALL | RECALLED => Empty // TODO: implement view parts
+      case UNKNOWN | RICH_MEDIA => Empty // RICH_MEDIA will be handled separately
+      case RECALLED => Empty // recalled messages only have an icon in header
+      case MISSED_CALL => MissedCall
+      case CONNECT_ACCEPTED | INCOMING_CALL  => Empty // TODO: implement view parts
     }
   }
 

@@ -73,7 +73,8 @@ class UnreadDot(context: Context, attrs: AttributeSet, style: Int) extends View(
 }
 
 // TODO: replace LinearLayout with TextView, set chathead as compound drawable
-class UserView(context: Context, attrs: AttributeSet, style: Int) extends LinearLayout(context, attrs, style) with MessageViewPart with ViewHelper {
+// TODO: show trash icon for recalled messages
+class UserPartView(context: Context, attrs: AttributeSet, style: Int) extends LinearLayout(context, attrs, style) with MessageViewPart with ViewHelper {
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
 
   def this(context: Context) = this(context, null, 0)

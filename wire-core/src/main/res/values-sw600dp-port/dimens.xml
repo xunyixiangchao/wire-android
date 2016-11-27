@@ -47,8 +47,6 @@
     <dimen name="content__separator__avatar_container__width">0dp</dimen>
     <dimen name="content__separator__label_container__width">@dimen/content__width</dimen>
 
-    <dimen name="row_conversation__missed_call__margin">19dp</dimen>
-
     <dimen name="audio_message_recording__slide_control__margin_right">36dp</dimen>
     <dimen name="audio_message_recording__recorder__margin_right">92dp</dimen>
 </resources>

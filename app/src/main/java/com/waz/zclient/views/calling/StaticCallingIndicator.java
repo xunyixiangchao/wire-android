@@ -17,6 +17,8 @@
  */
 package com.waz.zclient.views.calling;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -25,7 +27,10 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.util.Property;
 import android.view.View;
+import com.waz.api.AccentColor;
 import com.waz.zclient.R;
+import com.waz.zclient.ui.animation.interpolators.penner.Back;
+import com.waz.zclient.ui.utils.ResourceUtils;
 import com.waz.zclient.utils.ViewUtils;
 
 public class StaticCallingIndicator extends View {
@@ -89,6 +94,7 @@ public class StaticCallingIndicator extends View {
     private float outerRadiusScale = 1.0f;
 
     private int strokeWidth;
+    private AnimatorSet animatorSet;
 
     public StaticCallingIndicator(Context context) {
         this(context, null);
@@ -125,6 +131,10 @@ public class StaticCallingIndicator extends View {
         paint3 = getDefaultPaint();
 
         setColor(DEFAULT_COLOR);
+    }
+
+    public void setColor(AccentColor color) {
+        setColor(color.getColor());
     }
 
     public void setColor(int color) {
@@ -198,4 +208,66 @@ public class StaticCallingIndicator extends View {
         return p;
     }
 
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        cancelAnimation();
+    }
+
+    public void runAnimation() {
+        Context context = getContext();
+        final long duration = context.getResources().getInteger(R.integer.animation_duration_long);
+        final long animationCircleDelay = context.getResources().getInteger(R.integer.row_conversation__missed_call__animation__delay_factor);
+        final float overshoot = ResourceUtils.getResourceFloat(context.getResources(), R.dimen.row_conversation__missed_call__animation__overshoot);
+
+        ObjectAnimator collapseInnerRadiusAnimator = ObjectAnimator.ofFloat(this, StaticCallingIndicator.INNER_RADIUS, 1.0f, 0.5f);
+        collapseInnerRadiusAnimator.setDuration(duration);
+        collapseInnerRadiusAnimator.setStartDelay(2 * animationCircleDelay);
+        collapseInnerRadiusAnimator.setInterpolator(new Back.EaseIn(overshoot));
+
+        ObjectAnimator expandInnerRadiusAnimator = ObjectAnimator.ofFloat(this, StaticCallingIndicator.INNER_RADIUS, 0.5f, 1.0f);
+        expandInnerRadiusAnimator.setDuration(duration);
+        expandInnerRadiusAnimator.setInterpolator(new Back.EaseOut(overshoot));
+
+        AnimatorSet innerRadiusSet = new AnimatorSet();
+        innerRadiusSet.playSequentially(collapseInnerRadiusAnimator, expandInnerRadiusAnimator);
+
+        ObjectAnimator collapseMiddleRadiusAnimator = ObjectAnimator.ofFloat(this, StaticCallingIndicator.MIDDLE_RADIUS, 1.0f, 0.5f);
+        collapseMiddleRadiusAnimator.setDuration(duration);
+        collapseMiddleRadiusAnimator.setStartDelay(animationCircleDelay);
+        collapseMiddleRadiusAnimator.setInterpolator(new Back.EaseIn(overshoot));
+
+        ObjectAnimator expandMiddleRadiusAnimator = ObjectAnimator.ofFloat(this, StaticCallingIndicator.MIDDLE_RADIUS, 0.5f, 1.0f);
+        expandMiddleRadiusAnimator.setDuration(duration);
+        expandMiddleRadiusAnimator.setStartDelay(2 * animationCircleDelay);
+        expandMiddleRadiusAnimator.setInterpolator(new Back.EaseOut(overshoot));
+
+        AnimatorSet middleRadiusSet = new AnimatorSet();
+        middleRadiusSet.playSequentially(collapseMiddleRadiusAnimator, expandMiddleRadiusAnimator);
+
+        ObjectAnimator collapseOuterRadiusAnimator = ObjectAnimator.ofFloat(this, StaticCallingIndicator.OUTER_RADIUS, 1.0f, 0.5f);
+        collapseOuterRadiusAnimator.setDuration(duration);
+        collapseOuterRadiusAnimator.setInterpolator(new Back.EaseIn(overshoot));
+
+        ObjectAnimator expandOuterRadiusAnimator = ObjectAnimator.ofFloat(this, StaticCallingIndicator.OUTER_RADIUS, 0.5f, 1.0f);
+        expandOuterRadiusAnimator.setStartDelay(4 * animationCircleDelay);
+        expandOuterRadiusAnimator.setDuration(duration);
+        expandOuterRadiusAnimator.setInterpolator(new Back.EaseOut(overshoot));
+
+        AnimatorSet outerRadiusSet = new AnimatorSet();
+        outerRadiusSet.playSequentially(collapseOuterRadiusAnimator, expandOuterRadiusAnimator);
+
+        animatorSet = new AnimatorSet();
+        animatorSet.playTogether(innerRadiusSet, middleRadiusSet, outerRadiusSet);
+        animatorSet.setStartDelay(context.getResources().getInteger(R.integer.animation_delay_very_long));
+        animatorSet.start();
+    }
+
+    public void cancelAnimation() {
+        if (animatorSet == null) {
+            return;
+        }
+        animatorSet.cancel();
+        animatorSet = null;
+    }
 }

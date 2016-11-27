@@ -52,7 +52,6 @@ public class MissedCallViewController extends MessageViewController implements U
     private ChatheadImageView chatheadImageView;
     private User user;
     private Locale locale;
-    private AnimatorSet animatorSet;
 
     @SuppressLint("InflateParams")
     public MissedCallViewController(Context context, MessageViewsContainer messageViewContainer) {
@@ -75,65 +74,9 @@ public class MissedCallViewController extends MessageViewController implements U
 
         final MessagesList messagesList = message.getConversation().getMessages();
         if (messagesList.size() - 1 == messagesList.getMessageIndex(message)) {
-            animateCallIndicator();
+            staticCallingIndicator.runAnimation();
         }
         updated();
-    }
-
-    private void animateCallIndicator() {
-        final long duration = context.getResources().getInteger(R.integer.animation_duration_long);
-        final long animationCircleDelay = context.getResources().getInteger(R.integer.row_conversation__missed_call__animation__delay_factor);
-        final float overshoot = ResourceUtils.getResourceFloat(context.getResources(), R.dimen.row_conversation__missed_call__animation__overshoot);
-
-        ObjectAnimator collapseInnerRadiusAnimator = ObjectAnimator.ofFloat(staticCallingIndicator, StaticCallingIndicator.INNER_RADIUS, 1.0f, 0.5f);
-        collapseInnerRadiusAnimator.setDuration(duration);
-        collapseInnerRadiusAnimator.setStartDelay(2 * animationCircleDelay);
-        collapseInnerRadiusAnimator.setInterpolator(new Back.EaseIn(overshoot));
-
-        ObjectAnimator expandInnerRadiusAnimator = ObjectAnimator.ofFloat(staticCallingIndicator, StaticCallingIndicator.INNER_RADIUS, 0.5f, 1.0f);
-        expandInnerRadiusAnimator.setDuration(duration);
-        expandInnerRadiusAnimator.setInterpolator(new Back.EaseOut(overshoot));
-
-        AnimatorSet innerRadiusSet = new AnimatorSet();
-        innerRadiusSet.playSequentially(collapseInnerRadiusAnimator, expandInnerRadiusAnimator);
-
-        ObjectAnimator collapseMiddleRadiusAnimator = ObjectAnimator.ofFloat(staticCallingIndicator, StaticCallingIndicator.MIDDLE_RADIUS, 1.0f, 0.5f);
-        collapseMiddleRadiusAnimator.setDuration(duration);
-        collapseMiddleRadiusAnimator.setStartDelay(animationCircleDelay);
-        collapseMiddleRadiusAnimator.setInterpolator(new Back.EaseIn(overshoot));
-
-        ObjectAnimator expandMiddleRadiusAnimator = ObjectAnimator.ofFloat(staticCallingIndicator, StaticCallingIndicator.MIDDLE_RADIUS, 0.5f, 1.0f);
-        expandMiddleRadiusAnimator.setDuration(duration);
-        expandMiddleRadiusAnimator.setStartDelay(2 * animationCircleDelay);
-        expandMiddleRadiusAnimator.setInterpolator(new Back.EaseOut(overshoot));
-
-        AnimatorSet middleRadiusSet = new AnimatorSet();
-        middleRadiusSet.playSequentially(collapseMiddleRadiusAnimator, expandMiddleRadiusAnimator);
-
-        ObjectAnimator collapseOuterRadiusAnimator = ObjectAnimator.ofFloat(staticCallingIndicator, StaticCallingIndicator.OUTER_RADIUS, 1.0f, 0.5f);
-        collapseOuterRadiusAnimator.setDuration(duration);
-        collapseOuterRadiusAnimator.setInterpolator(new Back.EaseIn(overshoot));
-
-        ObjectAnimator expandOuterRadiusAnimator = ObjectAnimator.ofFloat(staticCallingIndicator, StaticCallingIndicator.OUTER_RADIUS, 0.5f, 1.0f);
-        expandOuterRadiusAnimator.setStartDelay(4 * animationCircleDelay);
-        expandOuterRadiusAnimator.setDuration(duration);
-        expandOuterRadiusAnimator.setInterpolator(new Back.EaseOut(overshoot));
-
-        AnimatorSet outerRadiusSet = new AnimatorSet();
-        outerRadiusSet.playSequentially(collapseOuterRadiusAnimator, expandOuterRadiusAnimator);
-
-        animatorSet = new AnimatorSet();
-        animatorSet.playTogether(innerRadiusSet, middleRadiusSet, outerRadiusSet);
-        animatorSet.setStartDelay(context.getResources().getInteger(R.integer.animation_delay_very_long));
-        animatorSet.start();
-    }
-
-    private void cancelAnimation() {
-        if (animatorSet == null) {
-            return;
-        }
-        animatorSet.cancel();
-        animatorSet = null;
     }
 
     @Override
@@ -148,7 +91,7 @@ public class MissedCallViewController extends MessageViewController implements U
         if (!messageViewsContainer.isTornDown()) {
             messageViewsContainer.getControllerFactory().getAccentColorController().removeAccentColorObserver(this);
         }
-        cancelAnimation();
+        staticCallingIndicator.cancelAnimation();
         chatheadImageView.setUser(null);
         chatheadImageView.setOnClickListener(null);
         super.recycle();
