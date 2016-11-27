@@ -27,6 +27,7 @@ import com.waz.threading.Threading
 import com.waz.utils.events.Signal
 import com.waz.zclient.controllers.global.AccentColorController
 import com.waz.zclient.controllers.{BrowserController, ScreenController}
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.{MessageViewPart, MsgPart, SyncEngineSignals, SystemMessageView}
 import com.waz.zclient.utils.ContextUtils._
 import com.waz.zclient.{R, ViewHelper}
@@ -92,7 +93,7 @@ class OtrMsgPartView(context: Context, attrs: AttributeSet, style: Int) extends 
     }
   }
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
     message.publish(msg, Threading.Ui)
   }
 }

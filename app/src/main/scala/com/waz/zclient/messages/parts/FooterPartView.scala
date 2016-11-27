@@ -33,6 +33,7 @@ import com.waz.utils.events.{Signal, _}
 import com.waz.zclient.common.views.ChatheadView
 import com.waz.zclient.controllers.ScreenController
 import com.waz.zclient.controllers.global.SelectionController
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.{Footer, SyncEngineSignals}
 import com.waz.zclient.ui.utils.TextViewUtils
 import com.waz.zclient.utils.ContextUtils.{getColor, getQuantityString, _}
@@ -118,8 +119,8 @@ class FooterPartView(context: Context, attrs: AttributeSet, style: Int) extends 
       })
   }
 
-  override def set(pos: Int, msg: MessageAndLikes): Unit = {
-    this.pos = pos
+  override def set(msg: MessageAndLikes, opts: MsgOptions): Unit = {
+    this.pos = opts.position
     message.publish(msg.message, Threading.Ui)
     likeDetails.messageId.publish(msg.message.id, Threading.Ui)
     likeButton.message.publish(msg.message, Threading.Ui)

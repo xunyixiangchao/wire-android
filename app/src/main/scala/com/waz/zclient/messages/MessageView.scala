@@ -28,9 +28,10 @@ import com.waz.api.Message
 import com.waz.model.{MessageContent, MessageData, MessageId, UserId}
 import com.waz.service.messages.MessageAndLikes
 import com.waz.threading.Threading
+import com.waz.utils.RichOption
 import com.waz.utils.events.Signal
-import com.waz.utils.{RichOption, returning}
 import com.waz.zclient.controllers.global.SelectionController
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.MsgPart._
 import com.waz.zclient.ui.text.TypefaceTextView
 import com.waz.zclient.utils.ContextUtils._
@@ -54,18 +55,15 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
   private var separator = Option.empty[TimeSeparator]
   private var footer = Option.empty[Footer]
 
-  var parent = Option.empty[ViewGroup]
-  private def widthHint = parent.fold(0)(_.getWidth)
-
   this.onClick {
     selection.toggleFocused(msgId)
   }
 
-  var pos = -1 //messages position for debugging only
+  private var pos = -1 //messages position for debugging only
 
-  def set(pos: Int, mAndL: MessageAndLikes, prev: Option[MessageData], isFirstUnread: Boolean): Unit = {
+  def set(mAndL: MessageAndLikes, prev: Option[MessageData], opts: MsgOptions): Unit = {
     val msg = mAndL.message
-    this.pos = pos
+    this.pos = opts.position
     msgId = msg.id
     verbose(s"set $pos, $mAndL")
 
@@ -78,7 +76,7 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
       else {
         val builder = Seq.newBuilder[(MsgPart, Option[MessageContent])]
 
-        getSeparatorType(msg, prev, isFirstUnread).foreach(sep => builder += sep -> None)
+        getSeparatorType(msg, prev, opts.isFirstUnread).foreach(sep => builder += sep -> None)
 
         if (shouldShowChathead(msg, prev))
           builder += MsgPart.User -> None
@@ -93,12 +91,12 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
       }
 
     if (parts.nonEmpty) this.setMarginTop(getTopMargin(prev.map(_.msgType), parts.head._1))
-    setParts(pos, mAndL, parts, isFirstUnread)
+    setParts(mAndL, parts, opts)
   }
 
-  def getSeparator = separator
+  def getSeparator: Option[TimeSeparator] = separator
 
-  def getFooter = footer
+  def getFooter: Option[Footer] = footer
 
   private def getSeparatorType(msg: MessageData, prev: Option[MessageData], isFirstUnread: Boolean): Option[MsgPart] = msg.msgType match {
     case Message.Type.CONNECT_REQUEST => None
@@ -118,8 +116,11 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
     val recalled = msg.msgType == Message.Type.RECALLED
     val knock = msg.msgType != Message.Type.KNOCK
 
-  private def setParts(position: Int, msg: MessageAndLikes, parts: Seq[(MsgPart, Option[MessageContent])], isFirstUnread: Boolean) = {
-    verbose(s"setParts: position: $position, parts: ${parts.map(_._1)}")
+    recalled || !msg.isSystemMessage && !knock && userChanged
+  }
+
+  private def setParts(msg: MessageAndLikes, parts: Seq[(MsgPart, Option[MessageContent])], opts: MsgOptions) = {
+    verbose(s"setParts: opts: $opts, parts: ${parts.map(_._1)}")
 
     // recycle views in reverse order, recycled views are stored in a Stack, this way we will get the same views back if parts are the same
     // XXX: one views get bigger, we may need to optimise this, we don't need to remove views that will get reused, currently this seems to be fast enough
@@ -133,12 +134,12 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
       val view = factory.get(tpe, this)
       view match {
         case v: TimeSeparator =>
-          v.set(position, msg.message.time, isFirstUnread)
+          v.set(msg.message.time, opts)
           separator = Some(v)
         case v: MessageViewPart =>
-          v.set(position, msg.message, content, widthHint)
+          v.set(msg.message, content, opts)
         case v: Footer =>
-          v.set(position, msg)
+          v.set(msg, opts)
           footer = Some(v)
       }
       addViewInLayout(view, index, Option(view.getLayoutParams) getOrElse factory.DefaultLayoutParams)
@@ -167,9 +168,7 @@ object MessageView {
   }
 
   def apply(parent: ViewGroup, tpe: Int): MessageView = tpe match {
-    case _ => returning(ViewHelper.inflate[MessageView](R.layout.message_view, parent, addToParent = false)) {
-      _.parent = Some(parent)
-    }
+    case _ => ViewHelper.inflate[MessageView](R.layout.message_view, parent, addToParent = false)
   }
 
   trait MarginRule
@@ -228,6 +227,10 @@ object MessageView {
       }
       toPx(p)
     }
+  }
+
+  case class MsgOptions(position: Int, totalCount: Int, isSelf: Boolean, isFirstUnread: Boolean, widthHint: Int) {
+    def isLast: Boolean = position == totalCount - 1
   }
 }
 
@@ -310,10 +313,9 @@ trait TimeSeparator extends ViewPart with ViewHelper {
 
   text.on(Threading.Ui)(timeText.setTransformedText)
 
-  def set(pos: Int, time: Instant, isFirstUnread: Boolean): Unit = {
-    verbose(s"Setting isFirstUnread?: $isFirstUnread at pos $pos")
+  def set(time: Instant, opts: MsgOptions): Unit = {
     this.time ! time
-    unreadDot.show ! isFirstUnread
+    unreadDot.show ! opts.isFirstUnread
   }
 
   this.onClick {} //confusing if message opens when timestamp clicked
@@ -321,7 +323,7 @@ trait TimeSeparator extends ViewPart with ViewHelper {
 }
 
 trait MessageViewPart extends ViewPart {
-  def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit
+  def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit
 }
 
 trait Footer extends ViewPart {
@@ -332,7 +334,7 @@ trait Footer extends ViewPart {
 
   def getContentTranslation: Float
 
-  def set(pos: Int, msg: MessageAndLikes): Unit
+  def set(msg: MessageAndLikes, opts: MsgOptions): Unit
 
   def updateLikes(likedBySelf: Boolean, likes: IndexedSeq[UserId]): Unit
 }

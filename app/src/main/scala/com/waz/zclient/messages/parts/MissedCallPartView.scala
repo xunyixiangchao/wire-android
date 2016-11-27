@@ -7,19 +7,16 @@ import com.waz.ZLog.ImplicitTag._
 import com.waz.model._
 import com.waz.service.ZMessaging
 import com.waz.threading.Threading
-import com.waz.utils._
 import com.waz.utils.events.Signal
 import com.waz.zclient.common.views.ChatheadView
 import com.waz.zclient.controllers.global.AccentColorController
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.{MessageViewPart, MsgPart}
 import com.waz.zclient.ui.text.TypefaceTextView
 import com.waz.zclient.ui.utils.TextViewUtils
 import com.waz.zclient.utils.ContextUtils._
 import com.waz.zclient.views.calling.StaticCallingIndicator
 import com.waz.zclient.{R, ViewHelper}
-import org.threeten.bp.Instant
-
-import scala.concurrent.duration._
 
 class MissedCallPartView(context: Context, attrs: AttributeSet, style: Int) extends RelativeLayout(context, attrs, style) with MessageViewPart with ViewHelper {
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
@@ -59,13 +56,13 @@ class MissedCallPartView(context: Context, attrs: AttributeSet, style: Int) exte
 
   accent.accentColor.on(Threading.Ui) { callIndicator.setColor }
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
     userId ! msg.userId
 
     // start animation if this is the first time this message is shown
     // how do we properly detect that?
     // what if user scrolls back, maybe we should continue previous animation
-    if (msg.localTime >= Instant.now - 5.seconds) {
+    if (opts.isLast && !opts.isSelf) {
       callIndicator.runAnimation()
     }
   }

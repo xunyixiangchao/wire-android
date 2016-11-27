@@ -33,6 +33,7 @@ import com.waz.threading.Threading
 import com.waz.utils.events.Signal
 import com.waz.utils.returning
 import com.waz.zclient._
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.MessageViewPart
 import com.waz.zclient.messages.parts.DeliveryState.{Complete, OtherUploading}
 import com.waz.zclient.utils.ContextUtils._
@@ -106,7 +107,7 @@ trait AssetPart extends View with MessageViewPart with ViewHelper {
   val progressDots = new AssetBackground(deliveryState.map { case OtherUploading => true; case _ => false })
   setBackground(progressDots)
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
     message ! msg
   }
 
@@ -166,9 +167,9 @@ trait ImageLayoutAssetPart extends AssetPart {
     setLayoutParams(returning(getLayoutParams)(_.height = h))
   }
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
-    super.set(pos, msg, part, widthHint)
-    viewWidth.mutateOrDefault(identity, widthHint)
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
+    super.set(msg, part, opts)
+    viewWidth.mutateOrDefault(identity, opts.widthHint)
   }
 
   override def onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int): Unit = {
@@ -180,8 +181,8 @@ trait ImageLayoutAssetPart extends AssetPart {
 trait ActionableAssetPart extends ContentAssetPart {
   protected val assetActionButton: AssetActionButtonNew = findById(R.id.action_button)
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
-    super.set(pos, msg, part, widthHint)
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
+    super.set(msg, part, opts)
     assetActionButton.message ! msg
   }
 }

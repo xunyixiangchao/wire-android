@@ -29,6 +29,7 @@ import com.waz.threading.Threading
 import com.waz.utils.events.Signal
 import com.waz.utils.returning
 import com.waz.zclient.common.views.ChatheadView
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.SyncEngineSignals.DisplayName.{Me, Other}
 import com.waz.zclient.messages._
 import com.waz.zclient.utils.ContextUtils._
@@ -94,7 +95,7 @@ class MemberChangePartView(context: Context, attrs: AttributeSet, style: Int) ex
 
   message.map(_.members.toSeq.sortBy(_.str)) { gridView.members ! _ }
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
     message ! msg
   }
 }

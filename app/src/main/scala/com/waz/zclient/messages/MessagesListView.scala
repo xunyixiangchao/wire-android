@@ -30,6 +30,7 @@ import com.waz.threading.{CancellableFuture, Threading}
 import com.waz.utils.events.{EventContext, Signal}
 import com.waz.zclient.controllers.global.SelectionController
 import com.waz.zclient.messages.ItemChangeAnimator.{FocusChanged, LikesChanged}
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.ScrollController.Scroll
 import com.waz.zclient.messages.controllers.NavigationController
 import com.waz.zclient.utils.ContextUtils._
@@ -42,9 +43,11 @@ class MessagesListView(context: Context, attrs: AttributeSet, style: Int) extend
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
   def this(context: Context) = this(context, null, 0)
 
+  val width = Signal[Int]()
+  val height = Signal[Int]()
   val layoutManager = new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-  val adapter = new MessagesListAdapter
-  val scrollController = new ScrollController(adapter)
+  val adapter = new MessagesListAdapter(width)
+  val scrollController = new ScrollController(adapter, height)
   val lastRead = new LastReadController(adapter, layoutManager)
 
   setHasFixedSize(true)
@@ -81,7 +84,8 @@ class MessagesListView(context: Context, attrs: AttributeSet, style: Int) extend
   })
 
   override def onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int): Unit = {
-    scrollController.listHeight ! (b - t)
+    width ! (r - l)
+    height ! (b - t)
     super.onLayout(changed, l, t, r, b)
   }
 
@@ -118,13 +122,13 @@ case class MessageViewHolder(view: MessageView, adapter: MessagesListAdapter)(im
 
   def shouldDisplayFooter = _isFocused || _hasLikes
 
-  def bind(position: Int, msg: MessageAndLikes, prev: Option[MessageData], isFirstUnread: Boolean, payloads: List[AnyRef]): Unit = {
+  def bind(msg: MessageAndLikes, prev: Option[MessageData], opts: MsgOptions, payloads: List[AnyRef]): Unit = {
     id = msg.message.id
     _isFocused = selection.focused.currentValue.exists(_.contains(id))
     _hasLikes = msg.likes.nonEmpty
 
     payloads.headOption.fold { //full update
-      view.set(position, msg, prev, isFirstUnread)
+      view.set(msg, prev, opts)
       view.getFooter.foreach{ f =>  //set initial state for footer
         f.setVisible(shouldDisplayFooter)
         if (f.isVisible) {

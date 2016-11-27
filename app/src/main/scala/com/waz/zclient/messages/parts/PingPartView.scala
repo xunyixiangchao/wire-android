@@ -25,6 +25,7 @@ import com.waz.service.ZMessaging
 import com.waz.threading.Threading
 import com.waz.utils.events.Signal
 import com.waz.zclient.common.views.ChatheadView
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.SyncEngineSignals.DisplayName.{Me, Other}
 import com.waz.zclient.messages.{MessageViewPart, MsgPart, SyncEngineSignals}
 import com.waz.zclient.ui.text.{GlyphTextView, TypefaceTextView}
@@ -55,7 +56,7 @@ class PingPartView(context: Context, attrs: AttributeSet, style: Int) extends Li
   val signals = inject[SyncEngineSignals]
 
   val message = Signal[MessageData]()
-  
+
   val userName = signals.userDisplayName(message)
 
   val text = userName map {
@@ -77,7 +78,7 @@ class PingPartView(context: Context, attrs: AttributeSet, style: Int) extends Li
 
   // TODO: animate new ping, we need some generic controller to track message animations acrosss recycled views
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
     message.publish(msg, Threading.Ui)
   }
 }

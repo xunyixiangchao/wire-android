@@ -22,6 +22,7 @@ import android.util.{AttributeSet, TypedValue}
 import com.waz.api.Message
 import com.waz.model.{MessageContent, MessageData}
 import com.waz.zclient.R
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.{MessageViewPart, MsgPart}
 import com.waz.zclient.ui.text.LinkTextView
 
@@ -34,7 +35,7 @@ class TextPartView(context: Context, attrs: AttributeSet, style: Int) extends Li
   val textSizeRegular = context.getResources.getDimensionPixelSize(R.dimen.wire__text_size__regular)
   val textSizeEmoji = context.getResources.getDimensionPixelSize(R.dimen.wire__text_size__emoji)
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
     setTextSize(TypedValue.COMPLEX_UNIT_PX, if (isEmojiOnly(msg, part)) textSizeEmoji else textSizeRegular)
     setTextLink(part.fold(msg.contentString)(_.content))
   }

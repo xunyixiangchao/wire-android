@@ -31,6 +31,7 @@ import com.waz.sync.client.OpenGraphClient.OpenGraphData
 import com.waz.threading.Threading
 import com.waz.utils.events.Signal
 import com.waz.zclient.controllers.BrowserController
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.{MessageViewPart, MsgPart}
 import com.waz.zclient.utils._
 import com.waz.zclient.views.ImageAssetDrawable.{RequestBuilder, ScaleType, State}
@@ -111,7 +112,7 @@ class WebLinkPartView(context: Context, attrs: AttributeSet, style: Int) extends
     content.currentValue foreach { c => browser.openUrl(c.contentAsUri) }
   }
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = {
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
     verbose(s"set $part")
     message ! msg
     part foreach { content ! _ }

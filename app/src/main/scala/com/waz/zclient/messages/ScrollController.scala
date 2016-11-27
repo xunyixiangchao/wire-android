@@ -20,9 +20,8 @@ package com.waz.zclient.messages
 import com.waz.utils.events.{EventContext, EventStream, Signal}
 import com.waz.zclient.messages.ScrollController.Scroll
 
-class ScrollController(adapter: MessagesListView.Adapter)(implicit ec: EventContext) {
+class ScrollController(adapter: MessagesListView.Adapter, listHeight: Signal[Int])(implicit ec: EventContext) {
 
-  val listHeight = Signal[Int]()
   val onScrollToBottomRequested = EventStream[Int]
 
   private var shouldScrollToBottom = false

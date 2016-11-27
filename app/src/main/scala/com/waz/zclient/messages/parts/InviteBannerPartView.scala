@@ -24,6 +24,7 @@ import com.waz.model.{MessageContent, MessageData}
 import com.waz.utils.returning
 import com.waz.zclient.utils.RichView
 import com.waz.zclient.controllers.theme.IThemeController
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.{MessageViewPart, MsgPart}
 import com.waz.zclient.pages.main.pickuser.controller.IPickUserController
 import com.waz.zclient.ui.views.ZetaButton
@@ -45,6 +46,6 @@ class InviteBannerPartView(context: Context, attrs: AttributeSet, style: Int) ex
       }
     }
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit =
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit =
     showContactsButton.setIsFilled(themeController.isDarkTheme)
 }

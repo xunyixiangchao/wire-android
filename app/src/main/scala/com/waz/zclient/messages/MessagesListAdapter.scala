@@ -24,13 +24,16 @@ import android.view.ViewGroup
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
 import com.waz.service.ZMessaging
+import com.waz.service.messages.MessageAndLikes
 import com.waz.threading.Threading
 import com.waz.utils.events.{EventContext, EventStream, Signal}
 import com.waz.zclient.controllers.global.SelectionController
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.{Injectable, Injector}
+
 import collection.JavaConverters._
 
-class MessagesListAdapter()(implicit inj: Injector, ec: EventContext) extends RecyclerView.Adapter[MessageViewHolder]() with Injectable with MessagesListView.Adapter { adapter =>
+class MessagesListAdapter(listWidth: Signal[Int])(implicit inj: Injector, ec: EventContext) extends RecyclerView.Adapter[MessageViewHolder]() with Injectable with MessagesListView.Adapter { adapter =>
 
   verbose("MessagesListAdapter created")
 
@@ -67,22 +70,20 @@ class MessagesListAdapter()(implicit inj: Injector, ec: EventContext) extends Re
 
   override def onBindViewHolder(holder: MessageViewHolder, pos: Int, payloads: util.List[AnyRef]): Unit = {
     verbose(s"onBindViewHolder: position: $pos")
-    holder.bind(pos, message(pos), if (pos == 0) None else Some(message(pos - 1).message), isFirstUnread(pos), payloads.asScala.toList)
+    val data = message(pos)
+    val isSelf = zms.currentValue.exists(_.selfUserId == data.message.userId)
+    val isFirstUnread = pos > 0 && !isSelf && showUnreadAtPos.currentValue.exists { case (show, p) => show && p == pos }
+    val opts = MsgOptions(pos, getItemCount, isSelf, isFirstUnread, listWidth.currentValue.getOrElse(0))
+
+    holder.bind(data, if (pos == 0) None else Some(message(pos - 1).message), opts, payloads.asScala.toList)
     onBindView ! pos
   }
 
   val showUnreadAtPos = showUnreadDot.zip(nextUnreadIndex)
   showUnreadAtPos.onChanged.on(Threading.Ui) { case (_, pos) => notifyItemChanged(pos) }
 
-  private def isFirstUnread(pos: Int) =
-    if (pos == 0) false
-    else if (!zms.map(_.selfUserId).currentValue.contains(message(pos).message.userId))
-      showUnreadAtPos.currentValue.exists { case (show, p) => show && p == pos }
-    else false
-
   override def onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder =
     MessageViewHolder(MessageView(parent, viewType), adapter)
-
 
   // view depends on two message entries,
   // most importantly, view needs to be refreshed if previous message was added or removed

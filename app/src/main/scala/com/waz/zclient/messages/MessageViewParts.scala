@@ -29,6 +29,7 @@ import com.waz.threading.Threading
 import com.waz.utils.events.Signal
 import com.waz.zclient.common.views.ChatheadView
 import com.waz.zclient.controllers.global.AccentColorController
+import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.ui.text.TypefaceTextView
 import com.waz.zclient.ui.theme.ThemeUtils
 import com.waz.zclient.utils.ContextUtils.{getColor, getDimenPx}
@@ -97,7 +98,7 @@ class UserPartView(context: Context, attrs: AttributeSet, style: Int) extends Li
 
   user.map(_.getDisplayName).on(Threading.Ui)(tvName.setTransformedText)
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = userId ! msg.userId
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = userId ! msg.userId
 }
 
 class EmptyPartView(context: Context, attrs: AttributeSet, style: Int) extends View(context, attrs, style) with MessageViewPart {
@@ -106,5 +107,5 @@ class EmptyPartView(context: Context, attrs: AttributeSet, style: Int) extends V
 
   override val tpe = MsgPart.Empty
 
-  override def set(pos: Int, msg: MessageData, part: Option[MessageContent], widthHint: Int): Unit = ()
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = ()
 }
