@@ -23,6 +23,8 @@ import android.support.v7.widget.RecyclerView
 import android.view.ViewGroup
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
+import com.waz.api.IConversation
+import com.waz.model.ConversationData.ConversationType
 import com.waz.service.ZMessaging
 import com.waz.threading.Threading
 import com.waz.utils.events.{EventContext, EventStream, Signal}
@@ -42,15 +44,22 @@ class MessagesListAdapter(listWidth: Signal[Int])(implicit inj: Injector, ec: Ev
   val showUnreadDot = Signal[Boolean](false)
   override val nextUnreadIndex = Signal[Int]()
 
+  val convType = for {
+    (zs, convId) <- zms.zip(selectedConversation)
+    conv <- Signal future zs.convsStorage.get(convId)
+  } yield conv.fold(ConversationType.Group)(_.convType)
+
   val cursor = zms.zip(selectedConversation) map { case (zs, conv) => new RecyclerCursor(conv, zs, adapter) }
   override val msgCount = cursor.flatMap(_.countSignal)
 
   private var messages = Option.empty[RecyclerCursor]
+  private var conversationType = ConversationType.Group
 
-  cursor.on(Threading.Ui) { c =>
+  cursor.zip(convType).on(Threading.Ui) { case (c, tpe) =>
     messages.foreach(_.close())
     verbose(s"cursor changed: ${c.count}")
     messages = Some(c)
+    conversationType = tpe
     notifyDataSetChanged()
   }
 
@@ -71,7 +80,7 @@ class MessagesListAdapter(listWidth: Signal[Int])(implicit inj: Injector, ec: Ev
     val data = message(pos)
     val isSelf = zms.currentValue.exists(_.selfUserId == data.message.userId)
     val isFirstUnread = pos > 0 && !isSelf && showUnreadAtPos.currentValue.exists { case (show, p) => show && p == pos }
-    val opts = MsgOptions(pos, getItemCount, isSelf, isFirstUnread, listWidth.currentValue.getOrElse(0))
+    val opts = MsgOptions(pos, getItemCount, isSelf, isFirstUnread, listWidth.currentValue.getOrElse(0), conversationType)
 
     holder.bind(data, if (pos == 0) None else Some(message(pos - 1).message), opts, changeInfo(payloads))
     onBindView ! pos

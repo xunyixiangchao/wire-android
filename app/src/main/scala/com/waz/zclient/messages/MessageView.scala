@@ -25,6 +25,7 @@ import android.widget.LinearLayout
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
 import com.waz.api.Message
+import com.waz.model.ConversationData.ConversationType
 import com.waz.model.{MessageContent, MessageData, MessageId, UserId}
 import com.waz.service.messages.MessageAndLikes
 import com.waz.threading.Threading
@@ -82,7 +83,9 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
         if (shouldShowChathead(msg, prev))
           builder += MsgPart.User -> None
 
-        // TODO: add invite banner part for first member create message
+        if (shouldShowInviteBanner(msg, opts)) {
+          builder += MsgPart.InviteBanner -> None
+        }
         builder ++= contentParts
 
         if (focusableTypes.contains(msg.msgType))//|| mAndL.likes.nonEmpty) TODO need to trigger open animation if liked
@@ -121,11 +124,14 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
     !knock && !msg.isSystemMessage && (recalled || edited || userChanged)
   }
 
+  private def shouldShowInviteBanner(msg: MessageData, opts: MsgOptions) =
+    opts.position == 0 && msg.msgType == Message.Type.MEMBER_JOIN && opts.convType == ConversationType.Group
+
   private def setParts(msg: MessageAndLikes, parts: Seq[(MsgPart, Option[MessageContent])], opts: MsgOptions) = {
     verbose(s"setParts: opts: $opts, parts: ${parts.map(_._1)}")
 
     // recycle views in reverse order, recycled views are stored in a Stack, this way we will get the same views back if parts are the same
-    // XXX: one views get bigger, we may need to optimise this, we don't need to remove views that will get reused, currently this seems to be fast enough
+    // XXX: once views get bigger, we may need to optimise this, we don't need to remove views that will get reused, currently this seems to be fast enough
     (0 until getChildCount).reverseIterator.map(getChildAt) foreach {
       case pv: ViewPart => factory.recycle(pv)
       case _ =>
@@ -231,7 +237,14 @@ object MessageView {
     }
   }
 
-  case class MsgOptions(position: Int, totalCount: Int, isSelf: Boolean, isFirstUnread: Boolean, widthHint: Int) {
+  case class MsgOptions(
+                         position: Int,
+                         totalCount: Int,
+                         isSelf: Boolean,
+                         isFirstUnread: Boolean,
+                         widthHint: Int,
+                         convType: ConversationType
+                       ) {
     def isLast: Boolean = position == totalCount - 1
   }
 }
