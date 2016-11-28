@@ -43,7 +43,7 @@ class PermissionsController(sysPerms: PermissionsWrapper)(implicit injector: Inj
 
   private var currentRequests = Map[Int, Promise[Set[Permission]]]()
 
-  private def request(permissions: Set[Permission]) = {
+  def request(permissions: Set[Permission]): Future[Set[Permission]] = {
     if (permissions.forall(_.hasPermission(sysPerms))) Future.successful(permissions)
     else {
       val requestCode = currentRequests.keys.lastOption.fold(startingRequestCode)(_ + 1)
@@ -54,24 +54,33 @@ class PermissionsController(sysPerms: PermissionsWrapper)(implicit injector: Inj
     }
   }
 
+  def withPermissions[A](permissions: Permission*)(onGranted: => A) =
+    request(permissions.toSet).map {
+      case ps if ps forall(_.hasPermission(sysPerms)) => Some(onGranted)
+      case _ => None
+    } (Threading.Ui)
+
   def requiring(permissions: Set[Permission])(onGranted: => Unit)(dialogTitleId: Int = -1, dialogMessageId: Int = -1, onDenied: => Unit = ()) =
-    request(permissions).map { ps => if (ps forall (_.hasPermission(sysPerms))) onGranted else {
-      ViewUtils.showAlertDialog(
-        activity,
-        dialogTitleId,
-        dialogMessageId,
-        R.string.permissions_denied_dialog_acknowledge,
-        R.string.permissions_denied_dialog_settings,
-        new DialogInterface.OnClickListener() {
-          override def onClick(dialog: DialogInterface, which: Int) = onDenied
-        },
-        new DialogInterface.OnClickListener() {
-          override def onClick(dialog: DialogInterface, which: Int) = {
-            val intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", activity.getPackageName(), null))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            activity.startActivity(intent)
-          }
-        });
+    request(permissions).map { ps =>
+      if (ps forall (_.hasPermission(sysPerms))) onGranted
+      else {
+        onDenied
+        ViewUtils.showAlertDialog(
+          activity,
+          dialogTitleId,
+          dialogMessageId,
+          R.string.permissions_denied_dialog_acknowledge,
+          R.string.permissions_denied_dialog_settings,
+          new DialogInterface.OnClickListener() {
+            override def onClick(dialog: DialogInterface, which: Int): Unit = ()
+          },
+          new DialogInterface.OnClickListener() {
+            override def onClick(dialog: DialogInterface, which: Int): Unit = {
+              val intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", activity.getPackageName(), null))
+              intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+              activity.startActivity(intent)
+            }
+          })
     }}(Threading.Ui)
 
   activity.onPermissionResult.on(Threading.Ui) {
@@ -122,6 +131,10 @@ case object RecordAudioPermission extends Permission {
 
 case object CameraPermission extends Permission {
   override val name: String = permission.CAMERA
+}
+
+case object WriteExternalStoragePermission extends Permission {
+  override val name: String = permission.WRITE_EXTERNAL_STORAGE
 }
 
 case class UnknownPermission(override val name: String) extends Permission
