@@ -22,14 +22,14 @@ import android.animation.ValueAnimator.AnimatorUpdateListener
 import android.graphics._
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import com.waz.model.GenericContent.Asset
 import com.waz.model._
 import com.waz.service.ZMessaging
-import com.waz.service.assets.AssetService.BitmapRequest.Regular
+import com.waz.service.assets.AssetService.BitmapResult
 import com.waz.service.assets.AssetService.BitmapResult.BitmapLoaded
-import com.waz.service.assets.AssetService.{BitmapRequest, BitmapResult}
 import com.waz.service.images.BitmapSignal
 import com.waz.threading.Threading
+import com.waz.ui.MemoryImageCache.BitmapRequest
+import com.waz.ui.MemoryImageCache.BitmapRequest.Regular
 import com.waz.utils.events.{EventContext, Signal}
 import com.waz.zclient.views.ImageAssetDrawable.{Padding, RequestBuilder, ScaleType, State}
 import com.waz.zclient.views.ImageController._
@@ -82,8 +82,7 @@ class ImageAssetDrawable(
   private def bitmapState(im: ImageSource, w: Int) =
     images.imageSignal(im, request(w))
       .map[State] {
-        case BitmapLoaded(bmp, true, _) => State.PreviewLoaded(im, Some(bmp))
-        case BitmapLoaded(bmp, _, _) => State.Loaded(im, Some(bmp))
+        case BitmapLoaded(bmp, _) => State.Loaded(im, Some(bmp))
         case _ => State.Failed(im)
       }
       .orElse(Signal const State.Loading(im))
@@ -187,7 +186,6 @@ object ImageAssetDrawable {
   object RequestBuilder {
     val Regular: RequestBuilder = BitmapRequest.Regular(_)
     val Single: RequestBuilder = BitmapRequest.Single(_)
-    val Static: RequestBuilder = BitmapRequest.Static(_)
   }
 
   sealed trait State {
@@ -196,7 +194,6 @@ object ImageAssetDrawable {
   }
   object State {
     case class Loading(src: ImageSource) extends State
-    case class PreviewLoaded(src: ImageSource, override val bmp: Option[Bitmap]) extends State
     case class Loaded(src: ImageSource, override val bmp: Option[Bitmap]) extends State
     case class Failed(src: ImageSource) extends State
   }
@@ -211,13 +208,7 @@ class ImageController(implicit inj: Injector) extends Injectable {
 
   val zMessaging = inject[Signal[ZMessaging]]
 
-  def imageData(id: AssetId) = zMessaging.flatMap { zms =>
-    zms.assetsStorage.signal(id) map {
-      case im: ImageAssetData => im
-      case AnyAssetData(_, conv, _, _, _, _, Some(AssetPreviewData.Image(preview)), _, _, _, _) => ImageAssetData(id, conv, Seq(preview))
-      case _ => ImageAssetData.Empty
-    }
-  }
+  def imageData(id: AssetId) = zMessaging.flatMap { _.assetsStorage.signal(id) }
 
   def imageSignal(id: AssetId, width: Int): Signal[BitmapResult] =
     imageSignal(id, Regular(width))
@@ -230,17 +221,13 @@ class ImageController(implicit inj: Injector) extends Injectable {
     } yield res
 
   def imageSignal(uri: Uri, req: BitmapRequest): Signal[BitmapResult] =
-    BitmapSignal(ImageAssetData(uri), req, ZMessaging.currentGlobal.imageLoader, ZMessaging.currentGlobal.imageCache)
+    BitmapSignal(AssetData(source = Some(uri)), req, ZMessaging.currentGlobal.imageLoader, ZMessaging.currentGlobal.imageCache)
 
-  def imageSignal(asset: Asset, req: BitmapRequest): Signal[BitmapResult] =
-    zMessaging flatMap { zms => BitmapSignal(asset, req, zms.imageLoader, zms.imageCache) }
-
-  def imageSignal(data: ImageAssetData, req: BitmapRequest): Signal[BitmapResult] =
+  def imageSignal(data: AssetData, req: BitmapRequest): Signal[BitmapResult] =
     zMessaging flatMap { zms => BitmapSignal(data, req, zms.imageLoader, zms.imageCache) }
 
   def imageSignal(src: ImageSource, req: BitmapRequest): Signal[BitmapResult] = src match {
     case WireImage(id) => imageSignal(id, req)
-    case ProtoImage(asset) => imageSignal(asset, req)
     case ImageUri(uri) => imageSignal(uri, req)
     case DataImage(data) => imageSignal(data, req)
   }
@@ -250,7 +237,6 @@ object ImageController {
 
   sealed trait ImageSource
   case class WireImage(id: AssetId) extends ImageSource
-  case class DataImage(data: ImageAssetData) extends ImageSource
-  case class ProtoImage(asset: Asset) extends ImageSource
+  case class DataImage(data: AssetData) extends ImageSource
   case class ImageUri(uri: Uri) extends ImageSource
 }

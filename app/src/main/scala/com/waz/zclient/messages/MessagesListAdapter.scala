@@ -23,7 +23,6 @@ import android.support.v7.widget.RecyclerView
 import android.view.ViewGroup
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
-import com.waz.api.IConversation
 import com.waz.model.ConversationData.ConversationType
 import com.waz.service.ZMessaging
 import com.waz.threading.Threading

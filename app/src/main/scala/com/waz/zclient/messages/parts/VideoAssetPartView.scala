@@ -34,6 +34,7 @@ import com.waz.zclient.views.ImageAssetDrawable.State.Loaded
 class VideoAssetPartView(context: Context, attrs: AttributeSet, style: Int) extends FrameLayout(context, attrs, style) with PlayableAsset with ImageLayoutAssetPart {
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
   def this(context: Context) = this(context, null, 0)
+  import Threading.Implicits.Ui
 
   override val tpe: MsgPart = MsgPart.VideoAsset
 
@@ -59,11 +60,11 @@ class VideoAssetPartView(context: Context, attrs: AttributeSet, style: Int) exte
     case true =>
       assetActionButton.onClick {
         for {
-          id <- assetId.currentValue
-          as <- zms.map(_.assets).currentValue
-          mime <- asset.map(_._1.mimeType).currentValue
+          id <- assetId.head
+          as <- zms.map(_.assets).head
+          mime <- asset.map(_._1.mime).head
         } {
-          as.getAssetUri(id).foreach {
+          as.getContentUri(id).foreach {
             case Some(uri) =>
               val intent = AssetUtils.getOpenFileIntent(uri, mime.orDefault.str)
               context.startActivity(intent)

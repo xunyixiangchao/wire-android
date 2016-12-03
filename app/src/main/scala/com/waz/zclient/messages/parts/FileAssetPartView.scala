@@ -69,7 +69,7 @@ class FileAssetPartView(context: Context, attrs: AttributeSet, style: Int) exten
   val sizeAndExt = asset.map {
     case (a, _) =>
       val size = if (a.sizeInBytes <= 0) None else Some(Formatter.formatFileSize(context, a.sizeInBytes))
-      val ext = Option(a.mimeType.extension).map(_.toUpperCase(Locale.getDefault))
+      val ext = Option(a.mime.extension).map(_.toUpperCase(Locale.getDefault))
       (size, ext)
   }
 
@@ -97,9 +97,9 @@ class FileAssetPartView(context: Context, attrs: AttributeSet, style: Int) exten
           id <- assetId.currentValue
           as <- zms.map(_.assets).currentValue
           a <- asset.map(_._1).currentValue
-          mime <- asset.map(_._1.mimeType).currentValue
+          mime <- asset.map(_._1.mime).currentValue
         } {
-          as.getAssetUri(id).foreach {
+          as.getContentUri(id).foreach {
             case Some(uri) =>
               val intent = AssetUtils.getOpenFileIntent(uri, mime.orDefault.str)
               val fileCanBeOpened = AssetUtils.fileTypeCanBeOpened(context.getPackageManager, intent)
@@ -143,7 +143,7 @@ class FileAssetPartView(context: Context, attrs: AttributeSet, style: Int) exten
                     case Success(Some(file)) =>
                       val uri = Uri.fromFile(file)
                       val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE).asInstanceOf[DownloadManager]
-                      downloadManager.addCompletedDownload(a.name.get, a.name.get, false, a.mimeType.orDefault.str, uri.getPath, a.sizeInBytes, true)
+                      downloadManager.addCompletedDownload(a.name.get, a.name.get, false, a.mime.orDefault.str, uri.getPath, a.sizeInBytes, true)
                       Toast.makeText(context, com.waz.zclient.ui.R.string.content__file__action__save_completed, Toast.LENGTH_SHORT).show()
 
                       val intent: Intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)

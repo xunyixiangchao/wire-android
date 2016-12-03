@@ -24,7 +24,6 @@ import com.waz.ZLog._
 import com.waz.api
 import com.waz.api.AssetStatus._
 import com.waz.api.Message
-import com.waz.model.AssetMetaData.HasDuration
 import com.waz.model._
 import com.waz.service.ZMessaging
 import com.waz.service.assets.GlobalRecordAndPlayService
@@ -63,8 +62,8 @@ class AssetController(implicit inj: Injector) extends Injectable {
 
   def retry(m: MessageData) = if (m.state == Message.Status.FAILED || m.state == Message.Status.FAILED_READ) messages.currentValue.foreach(_.retryMessageSending(m.convId, m.id))
 
-  def getPlaybackControls(asset: Signal[AnyAssetData]): Signal[PlaybackControls] = asset.flatMap { a =>
-    if (cond(a.mimeType.orDefault) { case Mime.Audio() => true }) Signal.const(new PlaybackControls(a.id))
+  def getPlaybackControls(asset: Signal[AssetData]): Signal[PlaybackControls] = asset.flatMap { a =>
+    if (cond(a.mime.orDefault) { case Mime.Audio() => true }) Signal.const(new PlaybackControls(a.id))
     else Signal.empty[PlaybackControls]
   }
 
@@ -81,7 +80,7 @@ class AssetController(implicit inj: Injector) extends Injectable {
         rP <- rAndP.currentValue
         isPlaying <- isPlaying.currentValue
       } {
-        as.getAssetUri(assetId).foreach {
+        as.getContentUri(assetId).foreach {
           case Some(uri) => f(rP, AssetMediaKey(assetId), UnauthenticatedContent(uri), isPlaying)
           case None =>
         }(Threading.Background)
@@ -189,7 +188,7 @@ trait ActionableAssetPart extends ContentAssetPart {
 
 trait PlayableAsset extends ActionableAssetPart {
   val duration = asset.map(_._1).map {
-    case AnyAssetData(_, _, _, _, _, Some(HasDuration(d)), _, _, _, _, _) => d
+    case AssetData.WithDuration(d) => d
     case _ => Duration.ZERO
   }
   val formattedDuration = duration.map(d => StringUtils.formatTimeSeconds(d.getSeconds))
@@ -228,7 +227,7 @@ object DeliveryState {
       case (UPLOAD_CANCELLED, _) => Cancelled
       case (UPLOAD_FAILED, _) => UploadFailed
       case (DOWNLOAD_FAILED, _) => DownloadFailed
-      case (UPLOAD_NOT_STARTED | META_DATA_SENT | PREVIEW_SENT | UPLOAD_IN_PROGRESS, mState) =>
+      case (UPLOAD_NOT_STARTED | UPLOAD_IN_PROGRESS, mState) =>
         mState match {
           case Message.Status.FAILED => UploadFailed
           case Message.Status.SENT => OtherUploading
@@ -242,6 +241,6 @@ object DeliveryState {
     res
   }
 
-  def apply(message: Signal[MessageData], asset: Signal[(AnyAssetData, api.AssetStatus)]): Signal[DeliveryState] =
+  def apply(message: Signal[MessageData], asset: Signal[(AssetData, api.AssetStatus)]): Signal[DeliveryState] =
     message.zip(asset).map { case (m, (_, s)) => apply(s, m.state) }
 }

@@ -30,6 +30,7 @@ import com.waz.service.assets.AssetService.BitmapResult
 import com.waz.service.assets.AssetService.BitmapResult.BitmapLoaded
 import com.waz.service.images.BitmapSignal
 import com.waz.threading.Threading
+import com.waz.ui.MemoryImageCache.BitmapRequest.Regular
 import com.waz.utils.LoggedTry
 import com.waz.utils.events.{EventContext, Signal}
 import com.waz.zclient.calling.controllers.GlobalCallingController

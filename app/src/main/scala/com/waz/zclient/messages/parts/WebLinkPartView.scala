@@ -26,7 +26,7 @@ import com.waz.ZLog._
 import com.waz.api.Message.Part
 import com.waz.model.GenericContent.LinkPreview
 import com.waz.model.GenericMessage.TextMessage
-import com.waz.model.{Dim2, GenericContent, MessageContent, MessageData}
+import com.waz.model._
 import com.waz.sync.client.OpenGraphClient.OpenGraphData
 import com.waz.threading.Threading
 import com.waz.utils.events.Signal
@@ -35,7 +35,7 @@ import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.{MessageViewPart, MsgPart}
 import com.waz.zclient.utils._
 import com.waz.zclient.views.ImageAssetDrawable.{RequestBuilder, ScaleType, State}
-import com.waz.zclient.views.ImageController.{ImageUri, ProtoImage}
+import com.waz.zclient.views.ImageController.{DataImage, ImageUri}
 import com.waz.zclient.views.{ImageAssetDrawable, ProgressDotsDrawable}
 import com.waz.zclient.{R, ViewHelper}
 
@@ -72,13 +72,13 @@ class WebLinkPartView(context: Context, attrs: AttributeSet, style: Int) extends
     ct <- content
     lp <- linkPreview
   } yield (ct.openGraph, lp) match {
-    case (_, Some(LinkPreview.WithAsset(asset)))            => Some(ProtoImage(asset))
+    case (_, Some(LinkPreview.WithAsset(asset)))            => Some(DataImage(asset))
     case (Some(OpenGraphData(_, _, Some(uri), _, _)), None) => Some(ImageUri(uri))
     case _                                                  => None
   }
 
   val dimensions = content.zip(linkPreview) map {
-    case (_, Some(LinkPreview.WithAsset(GenericContent.Asset.WithDimensions(d)))) => d
+    case (_, Some(LinkPreview.WithAsset(AssetData.WithDimensions(d)))) => d
     case (ct, _) => Dim2(ct.width, ct.height)
   }
 

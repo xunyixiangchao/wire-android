@@ -53,7 +53,7 @@ class AssetActionButtonNew(context: Context, attrs: AttributeSet, style: Int) ex
   private val normalButtonDrawable = getDrawable(R.drawable.selector__icon_button__background__video_message)
 
   private val errorButtonDrawable = getDrawable(R.drawable.selector__icon_button__background__video_message__error)
-  private val onCompletedDrawable = if (isFileType) new FileDrawable(asset.map(_._1.mimeType.extension)) else normalButtonDrawable
+  private val onCompletedDrawable = if (isFileType) new FileDrawable(asset.map(_._1.mime.extension)) else normalButtonDrawable
 
   accentController.accentColor.map(_.getColor).on(Threading.Ui)(setProgressColor)
 

@@ -23,16 +23,17 @@ import android.net.Uri
 import android.support.v4.app.NotificationCompat
 import com.waz.ZLog._
 import com.waz.bitmap.BitmapUtils
-import com.waz.model.{AssetId, AssetData}
+import com.waz.model.{AssetData, AssetId}
 import com.waz.service.ZMessaging
 import com.waz.service.assets.AssetService.BitmapResult
 import com.waz.service.images.BitmapSignal
 import com.waz.threading.Threading
+import com.waz.ui.MemoryImageCache.BitmapRequest.Single
 import com.waz.utils.LoggedTry
 import com.waz.utils.events.{EventContext, Signal}
-import com.waz.zclient.{Injectable, Injector, R, WireContext}
 import com.waz.zclient.utils.ContextUtils._
 import com.waz.zclient.utils.IntentUtils._
+import com.waz.zclient.{Injectable, Injector, R, WireContext}
 
 class ImageNotificationsController(implicit cxt: WireContext, eventContext: EventContext, inj: Injector) extends Injectable {
 
