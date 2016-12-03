@@ -18,30 +18,24 @@
 package com.waz.zclient.messages
 
 import android.content.Context
-import android.text.format.DateFormat
 import android.util.AttributeSet
-import android.view.{HapticFeedbackConstants, View, ViewGroup}
+import android.view.{HapticFeedbackConstants, ViewGroup}
 import android.widget.LinearLayout
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
 import com.waz.api.Message
 import com.waz.model.ConversationData.ConversationType
-import com.waz.model.{MessageContent, MessageData, MessageId, UserId}
+import com.waz.model.{MessageContent, MessageData, MessageId}
 import com.waz.service.messages.MessageAndLikes
-import com.waz.threading.Threading
 import com.waz.utils.RichOption
-import com.waz.utils.events.Signal
 import com.waz.zclient.controllers.global.SelectionController
-import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.MsgPart._
 import com.waz.zclient.messages.controllers.MessageActionsController
-import com.waz.zclient.ui.text.TypefaceTextView
 import com.waz.zclient.utils.ContextUtils._
 import com.waz.zclient.utils.DateConvertUtils.asZonedDateTime
-import com.waz.zclient.utils.ZTimeFormatter._
 import com.waz.zclient.utils._
 import com.waz.zclient.{BuildConfig, R, ViewHelper}
-import org.threeten.bp.{Instant, LocalDateTime, ZoneId}
+import org.threeten.bp.Instant
 
 class MessageView(context: Context, attrs: AttributeSet, style: Int) extends LinearLayout(context, attrs, style) with ViewHelper {
 
@@ -58,7 +52,6 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
   private var msg: MessageData = MessageData.Empty
   private var data: MessageAndLikes = MessageAndLikes.Empty
 
-  private var separator = Option.empty[TimeSeparator]
   private var footer = Option.empty[Footer]
 
   this.onClick {
@@ -109,8 +102,6 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
     setParts(mAndL, parts, opts)
   }
 
-  def getSeparator: Option[TimeSeparator] = separator
-
   def getFooter: Option[Footer] = footer
 
   private def getSeparatorType(msg: MessageData, prev: Option[MessageData], isFirstUnread: Boolean): Option[MsgPart] = msg.msgType match {
@@ -144,22 +135,17 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
     // recycle views in reverse order, recycled views are stored in a Stack, this way we will get the same views back if parts are the same
     // XXX: once views get bigger, we may need to optimise this, we don't need to remove views that will get reused, currently this seems to be fast enough
     (0 until getChildCount).reverseIterator.map(getChildAt) foreach {
-      case pv: ViewPart => factory.recycle(pv)
+      case pv: MessageViewPart => factory.recycle(pv)
       case _ =>
     }
     removeAllViewsInLayout()
 
     parts.zipWithIndex foreach { case ((tpe, content), index) =>
       val view = factory.get(tpe, this)
+      view.set(msg, content, opts)
       view match {
-        case v: TimeSeparator =>
-          v.set(msg.message.time, opts)
-          separator = Some(v)
-        case v: MessageViewPart =>
-          v.set(msg.message, content, opts)
-        case v: Footer =>
-          v.set(msg, opts)
-          footer = Some(v)
+        case v: Footer => footer = Some(v)
+        case _ =>
       }
       addViewInLayout(view, index, Option(view.getLayoutParams) getOrElse factory.DefaultLayoutParams)
     }
@@ -259,112 +245,3 @@ object MessageView {
     def isLast: Boolean = position == totalCount - 1
   }
 }
-
-sealed trait MsgPart
-
-object MsgPart {
-  case object Separator extends MsgPart
-  case object SeparatorLarge extends MsgPart
-  case object User extends MsgPart
-  case object Text extends MsgPart
-  case object Ping extends MsgPart
-  case object Rename extends MsgPart
-  case object FileAsset extends MsgPart
-  case object AudioAsset extends MsgPart
-  case object VideoAsset extends MsgPart
-  case object Image extends MsgPart
-  case object WebLink extends MsgPart
-  case object YouTube extends MsgPart
-  case object Location extends MsgPart
-  case object SoundCloud extends MsgPart
-  case object MemberChange extends MsgPart
-  case object ConnectRequest extends MsgPart
-  case object Footer extends MsgPart
-  case object InviteBanner extends MsgPart
-  case object OtrMessage extends MsgPart
-  case object Empty extends MsgPart
-  case object MissedCall extends MsgPart
-  case object Unknown extends MsgPart
-
-  def apply(msgType: Message.Type): MsgPart = {
-    import Message.Type._
-    msgType match {
-      case TEXT | TEXT_EMOJI_ONLY => Text
-      case ASSET => Image
-      case ANY_ASSET => FileAsset
-      case VIDEO_ASSET => VideoAsset
-      case AUDIO_ASSET => AudioAsset
-      case LOCATION => Location
-      case MEMBER_JOIN | MEMBER_LEAVE => MemberChange
-      case CONNECT_REQUEST => ConnectRequest
-      case OTR_ERROR | OTR_DEVICE_ADDED | OTR_IDENTITY_CHANGED | OTR_UNVERIFIED | OTR_VERIFIED | HISTORY_LOST | STARTED_USING_DEVICE => OtrMessage
-      case KNOCK => Ping
-      case RENAME => Rename
-      case MISSED_CALL => MissedCall
-      case RECALLED => Empty // recalled messages only have an icon in header
-      case CONNECT_ACCEPTED | INCOMING_CALL => Empty // those are never used in messages (only in notifications)
-      case RICH_MEDIA => Empty // RICH_MEDIA will be handled separately
-      case UNKNOWN => Unknown
-    }
-  }
-
-  def apply(msgType: Message.Part.Type): MsgPart = {
-    import Message.Part.Type._
-
-    msgType match {
-      case TEXT | TEXT_EMOJI_ONLY => Text
-      case ASSET => Image
-      case WEB_LINK => WebLink
-      case ANY_ASSET => FileAsset
-      case SOUNDCLOUD => SoundCloud
-      case YOUTUBE => YouTube
-      case GOOGLE_MAPS | SPOTIFY | TWITTER => Text
-    }
-  }
-}
-
-trait ViewPart extends View {
-  val tpe: MsgPart
-}
-
-trait TimeSeparator extends ViewPart with ViewHelper {
-
-  val is24HourFormat = DateFormat.is24HourFormat(getContext)
-
-  lazy val timeText: TypefaceTextView = findById(R.id.separator__time)
-  lazy val unreadDot: UnreadDot = findById(R.id.unread_dot)
-
-  val time = Signal[Instant]()
-  val text = time map { t =>
-    getSeparatorTime(getContext.getResources, LocalDateTime.now, DateConvertUtils.asLocalDateTime(t), is24HourFormat, ZoneId.systemDefault, true)
-  }
-
-  text.on(Threading.Ui)(timeText.setTransformedText)
-
-  def set(time: Instant, opts: MsgOptions): Unit = {
-    this.time ! time
-    unreadDot.show ! opts.isFirstUnread
-  }
-
-  this.onClick {} //confusing if message opens when timestamp clicked
-
-}
-
-trait MessageViewPart extends ViewPart {
-  def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit
-}
-
-trait Footer extends ViewPart {
-  override val tpe = Footer
-
-  //for animation
-  def setContentTranslationY(translation: Float): Unit
-
-  def getContentTranslation: Float
-
-  def set(msg: MessageAndLikes, opts: MsgOptions): Unit
-
-  def updateLikes(likedBySelf: Boolean, likes: IndexedSeq[UserId]): Unit
-}
-
-

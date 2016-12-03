@@ -25,7 +25,7 @@ import android.widget.{FrameLayout, LinearLayout, TextView}
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog.verbose
 import com.waz.api.Message.Status
-import com.waz.model.{MessageData, MessageId, UserId}
+import com.waz.model.{MessageContent, MessageData, MessageId, UserId}
 import com.waz.service.ZMessaging
 import com.waz.service.messages.MessageAndLikes
 import com.waz.threading.{CancellableFuture, Threading}
@@ -119,7 +119,9 @@ class FooterPartView(context: Context, attrs: AttributeSet, style: Int) extends 
       })
   }
 
-  override def set(msg: MessageAndLikes, opts: MsgOptions): Unit = {
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = ()
+
+  override def set(msg: MessageAndLikes, part: Option[MessageContent], opts: MsgOptions): Unit = {
     this.pos = opts.position
     message.publish(msg.message, Threading.Ui)
     likeDetails.messageId.publish(msg.message.id, Threading.Ui)

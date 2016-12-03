@@ -19,6 +19,7 @@ package com.waz.zclient.messages
 
 import android.content.Context
 import android.graphics.{Canvas, Paint}
+import android.text.format.DateFormat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.{LinearLayout, RelativeLayout}
@@ -26,17 +27,63 @@ import com.waz.ZLog.ImplicitTag._
 import com.waz.api.Message
 import com.waz.model._
 import com.waz.service.ZMessaging
+import com.waz.service.messages.MessageAndLikes
 import com.waz.threading.Threading
 import com.waz.utils.events.Signal
 import com.waz.zclient.common.views.ChatheadView
 import com.waz.zclient.controllers.global.AccentColorController
 import com.waz.zclient.messages.MessageView.MsgOptions
+import com.waz.zclient.messages.MsgPart.Footer
 import com.waz.zclient.ui.text.{GlyphTextView, TypefaceTextView}
 import com.waz.zclient.ui.theme.ThemeUtils
 import com.waz.zclient.utils.ContextUtils.{getColor, getDimenPx}
+import com.waz.zclient.utils.ZTimeFormatter.getSeparatorTime
 import com.waz.zclient.utils._
 import com.waz.zclient.{R, ViewHelper}
-import org.threeten.bp.Instant
+import org.threeten.bp.{Instant, LocalDateTime, ZoneId}
+
+
+trait MessageViewPart extends View {
+  val tpe: MsgPart
+
+  def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit
+
+  def set(msg: MessageAndLikes, part: Option[MessageContent], opts: MsgOptions): Unit =
+    set(msg.message, part, opts)
+}
+
+trait Footer extends MessageViewPart {
+  override val tpe = Footer
+
+  //for animation
+  def setContentTranslationY(translation: Float): Unit
+
+  def getContentTranslation: Float
+
+  def updateLikes(likedBySelf: Boolean, likes: IndexedSeq[UserId]): Unit
+}
+
+trait TimeSeparator extends MessageViewPart with ViewHelper {
+
+  val is24HourFormat = DateFormat.is24HourFormat(getContext)
+
+  lazy val timeText: TypefaceTextView = findById(R.id.separator__time)
+  lazy val unreadDot: UnreadDot = findById(R.id.unread_dot)
+
+  val time = Signal[Instant]()
+  val text = time map { t =>
+    getSeparatorTime(getContext.getResources, LocalDateTime.now, DateConvertUtils.asLocalDateTime(t), is24HourFormat, ZoneId.systemDefault, true)
+  }
+
+  text.on(Threading.Ui)(timeText.setTransformedText)
+
+  def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = {
+    this.time ! msg.time
+    unreadDot.show ! opts.isFirstUnread
+  }
+
+  this.onClick {} //confusing if message opens when timestamp clicked
+}
 
 class SeparatorView(context: Context, attrs: AttributeSet, style: Int) extends RelativeLayout(context, attrs, style) with TimeSeparator {
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
