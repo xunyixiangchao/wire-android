@@ -20,7 +20,6 @@ package com.waz.zclient.messages
 import android.content.Context
 import android.util.AttributeSet
 import android.view.{HapticFeedbackConstants, ViewGroup}
-import android.widget.LinearLayout
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
 import com.waz.api.Message
@@ -37,22 +36,21 @@ import com.waz.zclient.utils._
 import com.waz.zclient.{BuildConfig, R, ViewHelper}
 import org.threeten.bp.Instant
 
-class MessageView(context: Context, attrs: AttributeSet, style: Int) extends LinearLayout(context, attrs, style) with ViewHelper {
+class MessageView(context: Context, attrs: AttributeSet, style: Int)
+    extends MessageViewLayout(context, attrs, style) with ViewHelper {
 
   import MessageView._
 
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
   def this(context: Context) = this(context, null, 0)
 
-  private val factory = inject[MessageViewFactory]
+  protected val factory = inject[MessageViewFactory]
   private val selection = inject[SelectionController].messages
   private lazy val messageActions = inject[MessageActionsController]
 
   private var msgId: MessageId = _
   private var msg: MessageData = MessageData.Empty
   private var data: MessageAndLikes = MessageAndLikes.Empty
-
-  private var footer = Option.empty[Footer]
 
   this.onClick {
     selection.toggleFocused(msgId)
@@ -92,6 +90,11 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
         }
         builder ++= contentParts
 
+        if (msg.isEphemeral) {
+          builder += MsgPart.EphemeralDots -> None
+        }
+
+        // FIXME: don't always add footer part, only when it needs to be shown, this needs to be better handled with animations
         if (focusableTypes.contains(msg.msgType))//|| mAndL.likes.nonEmpty) TODO need to trigger open animation if liked
           builder += MsgPart.Footer -> None
 
@@ -128,29 +131,6 @@ class MessageView(context: Context, attrs: AttributeSet, style: Int) extends Lin
 
   private def shouldShowInviteBanner(msg: MessageData, opts: MsgOptions) =
     opts.position == 0 && msg.msgType == Message.Type.MEMBER_JOIN && opts.convType == ConversationType.Group
-
-  private def setParts(msg: MessageAndLikes, parts: Seq[(MsgPart, Option[MessageContent])], opts: MsgOptions) = {
-    verbose(s"setParts: opts: $opts, parts: ${parts.map(_._1)}")
-
-    // recycle views in reverse order, recycled views are stored in a Stack, this way we will get the same views back if parts are the same
-    // XXX: once views get bigger, we may need to optimise this, we don't need to remove views that will get reused, currently this seems to be fast enough
-    (0 until getChildCount).reverseIterator.map(getChildAt) foreach {
-      case pv: MessageViewPart => factory.recycle(pv)
-      case _ =>
-    }
-    removeAllViewsInLayout()
-
-    parts.zipWithIndex foreach { case ((tpe, content), index) =>
-      val view = factory.get(tpe, this)
-      view.set(msg, content, opts)
-      view match {
-        case v: Footer => footer = Some(v)
-        case _ =>
-      }
-      addViewInLayout(view, index, Option(view.getLayoutParams) getOrElse factory.DefaultLayoutParams)
-    }
-  }
-
 }
 
 object MessageView {
@@ -206,6 +186,7 @@ object MessageView {
              SoundCloud => FileLike
         case Image | VideoAsset => ImageLike
         case MsgPart.MemberChange => MemberChange
+        case MsgPart.MissedCall => MissedCall
         case _ => Other
       }
     }
@@ -245,3 +226,6 @@ object MessageView {
     def isLast: Boolean = position == totalCount - 1
   }
 }
+
+
+

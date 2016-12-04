@@ -64,6 +64,7 @@ class MessageViewFactory {
         case OtrMessage     => ViewHelper.inflate(R.layout.message_otr_part, parent, false)
         case SoundCloud     => ViewHelper.inflate(R.layout.message_text, parent, false) // TODO: implement media player
         case MissedCall     => ViewHelper.inflate(R.layout.message_missed_call, parent, false)
+        case EphemeralDots  => ViewHelper.inflate(R.layout.message_ephemeral_dots_view, parent, false)
         case Empty          => new EmptyPartView(parent.getContext)
         case Unknown        => new EmptyPartView(parent.getContext) // TODO: display error msg, only used in internal
       }

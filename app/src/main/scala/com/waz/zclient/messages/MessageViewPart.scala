@@ -34,6 +34,7 @@ import com.waz.zclient.common.views.ChatheadView
 import com.waz.zclient.controllers.global.AccentColorController
 import com.waz.zclient.messages.MessageView.MsgOptions
 import com.waz.zclient.messages.MsgPart.Footer
+import com.waz.zclient.messages.parts.EphemeralDotsDrawable
 import com.waz.zclient.ui.text.{GlyphTextView, TypefaceTextView}
 import com.waz.zclient.ui.theme.ThemeUtils
 import com.waz.zclient.utils.ContextUtils.{getColor, getDimenPx}
@@ -51,6 +52,9 @@ trait MessageViewPart extends View {
   def set(msg: MessageAndLikes, part: Option[MessageContent], opts: MsgOptions): Unit =
     set(msg.message, part, opts)
 }
+
+// Marker for view parts that should be laid out as in FrameLayout (instead of LinearLayout)
+trait FrameLayoutPart extends MessageViewPart
 
 trait Footer extends MessageViewPart {
   override val tpe = Footer
@@ -171,4 +175,17 @@ class EmptyPartView(context: Context, attrs: AttributeSet, style: Int) extends V
   override val tpe = MsgPart.Empty
 
   override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit = ()
+}
+
+class EphemeralDotsView(context: Context, attrs: AttributeSet, style: Int) extends View(context, attrs, style) with ViewHelper with FrameLayoutPart {
+  def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
+  def this(context: Context) = this(context, null, 0)
+
+  override val tpe = MsgPart.EphemeralDots
+  val background = new EphemeralDotsDrawable()
+
+  setBackground(background)
+
+  override def set(msg: MessageData, part: Option[MessageContent], opts: MsgOptions): Unit =
+    background.setMessage(msg.id)
 }

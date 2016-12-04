@@ -3,10 +3,11 @@ package com.waz.zclient.messages
 import com.waz.api.Message
 
 sealed trait MsgPart
+sealed trait SeparatorPart extends MsgPart
 
 object MsgPart {
-  case object Separator extends MsgPart
-  case object SeparatorLarge extends MsgPart
+  case object Separator extends SeparatorPart
+  case object SeparatorLarge extends SeparatorPart
   case object User extends MsgPart
   case object Text extends MsgPart
   case object Ping extends MsgPart
@@ -24,8 +25,9 @@ object MsgPart {
   case object Footer extends MsgPart
   case object InviteBanner extends MsgPart
   case object OtrMessage extends MsgPart
-  case object Empty extends MsgPart
   case object MissedCall extends MsgPart
+  case object EphemeralDots extends MsgPart
+  case object Empty extends MsgPart
   case object Unknown extends MsgPart
 
   def apply(msgType: Message.Type): MsgPart = {
