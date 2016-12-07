@@ -39,12 +39,14 @@ public class RightIndicatorView extends LinearLayout {
     // Media player control indicator
     private CircleIconButton mediaControlView;
     private TextView joinCallView;
+    public CircleIconButton muteButton;
 
     private IConversation conversation;
     private IStreamMediaPlayerController streamMediaPlayerController;
     private INetworkStore networkStore;
 
     private boolean isMediaControlVisible;
+    private boolean isMuteVisible;
     private boolean isJoinCallVisible;
 
     private ConversationActionCallback callback;
@@ -64,6 +66,11 @@ public class RightIndicatorView extends LinearLayout {
         LayoutInflater.from(getContext()).inflate(R.layout.conv_list_item_indicator, this, true);
 
         initialPadding = getResources().getDimensionPixelSize(R.dimen.framework__general__right_padding);
+
+        muteButton = ViewUtils.getView(this, R.id.tv_conv_list_voice_muted);
+        muteButton.setText(R.string.glyph__silence);
+        muteButton.setSelectedTextColor(getResources().getColor(R.color.calling__ongoing__background__color));
+        muteButton.setShowCircleBorder(false);
 
         joinCallView = ViewUtils.getView(this, R.id.ttv__conv_list__join_call);
         joinCallView.setOnClickListener(new OnClickListener() {
@@ -115,6 +122,7 @@ public class RightIndicatorView extends LinearLayout {
 
     public void updated() {
         isJoinCallVisible = updateJoinCallIndicator();
+        isMuteVisible = updateMuteIndicator();
         isMediaControlVisible = updateMediaPlayerIndicator();
     }
 
@@ -144,6 +152,23 @@ public class RightIndicatorView extends LinearLayout {
         }
     }
 
+    private boolean updateMuteIndicator() {
+        if (isJoinCallVisible) {
+            muteButton.setVisibility(View.GONE);
+            return false;
+        }
+
+        muteButton.setSelected(false);
+        if (conversation.isMuted()) {
+            muteButton.setText(R.string.glyph__silence);
+            muteButton.setVisibility(View.VISIBLE);
+            return true;
+        } else {
+            muteButton.setVisibility(View.GONE);
+            return false;
+        }
+    }
+
     private boolean updateJoinCallIndicator() {
         boolean shouldShowJoinCall = conversation.hasUnjoinedCall();
         if (shouldShowJoinCall) {
@@ -169,7 +194,7 @@ public class RightIndicatorView extends LinearLayout {
             totalPadding += getResources().getDimensionPixelSize(R.dimen.conversation_list__right_icon_width);
         }
 
-        if (isJoinCallVisible) {
+        if (isJoinCallVisible || isMuteVisible) {
             totalPadding += getResources().getDimensionPixelSize(R.dimen.conversation_list__right_icon_width);
         }
 

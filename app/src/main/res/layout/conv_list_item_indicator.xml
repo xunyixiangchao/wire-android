@@ -44,11 +44,25 @@
         />
 
     <com.waz.zclient.ui.text.CircleIconButton
+        android:id="@+id/tv_conv_list_voice_muted"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="right"
+        android:gravity="center_vertical"
+        android:clickable="true"
+        android:paddingEnd="@dimen/list_right_indicator_right_padding"
+        android:paddingStart="@dimen/list_indicator_between_padding"
+        android:textSize="@dimen/wire__icon_button__text_size"
+        android:textColor="@color/list_menu_icon_color"
+        android:text="@string/glyph__microphone_off"
+        />
+
+    <com.waz.zclient.ui.text.CircleIconButton
         android:id="@+id/tv_conv_list_media_player"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:paddingRight="@dimen/list_right_indicator_right_padding"
-        android:paddingLeft="@dimen/list_indicator_between_padding"
+        android:paddingEnd="@dimen/list_right_indicator_right_padding"
+        android:paddingStart="@dimen/list_indicator_between_padding"
         android:gravity="center_vertical"
         android:clickable="true"
         android:textSize="@dimen/wire__icon_button__text_size"
